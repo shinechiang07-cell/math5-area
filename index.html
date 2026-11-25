@@ -357,6 +357,18 @@ button.hcard.taken{opacity:.55}
 .xfig svg{width:100%;height:auto;max-height:70vh}
 @media (max-width:900px){.xbody{grid-template-columns:1fr}}
 .backq{width:100%;margin-top:10px}
+
+/* 錯誤診斷、求救、報告 */
+.diag{margin-top:12px;border:2.5px solid var(--red);border-radius:14px;background:#fff6f2;padding:8px 12px}
+.diag .dg{font-weight:800;font-size:17px;margin:3px 0}.diag .dg b{display:inline-block;min-width:54px;color:var(--red)}.diag small{color:var(--dim);font-weight:700}
+.helpbtn{position:fixed;right:18px;bottom:18px;z-index:80;min-height:64px;padding:0 22px;border:3px solid var(--navy);border-radius:999px;background:#fff;font:inherit;font-size:21px;font-weight:900;box-shadow:4px 4px 0 var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.helpbtn.on{background:var(--yellow);animation:pulse 1.2s infinite}.helpbtn small{font-size:13px;font-weight:700}
+@keyframes pulse{0%,100%{box-shadow:4px 4px 0 var(--navy),0 0 0 0 rgba(242,193,78,.8)}50%{box-shadow:4px 4px 0 var(--navy),0 0 0 12px rgba(242,193,78,0)}}
+.hcard.help{background:#fff1b8;border-color:#e0a800;animation:pulse 1.2s infinite}
+.hcard .hdone{margin-top:3px;border:2px solid var(--navy);border-radius:999px;background:#fff;font:inherit;font-size:13px;font-weight:900;padding:2px 10px}
+.helpcount{background:var(--yellow)!important;animation:pulse 1.2s infinite}
+.rpin{width:min(1300px,96vw)}.rpbody{overflow:auto;min-height:0;padding:6px 4px}
+.rwset{font-size:20px;font-weight:800;margin:6px 0 12px}.rwset input{width:70px;font:inherit;font-size:20px;padding:4px;border:2.5px solid var(--navy);border-radius:10px;text-align:center}.rwset small{color:var(--dim);margin-left:8px}
 /* 結果 */
 .result{text-align:center;padding:10px 0}
 .result .bigstar{font-size:64px;letter-spacing:6px}
@@ -576,6 +588,35 @@ function conceptCard(k, exp, big) {
     (exp ? `<div class="cc-s"><b>本題解法</b>${exp}</div>` : '') + `<div class="cc-i"><b>為什麼？</b>${c.i}</div>` +
     `<div class="cc-m"><b>⚠️ 常見錯誤</b><ul>${c.m.map(x => `<li>${x}</li>`).join('')}</ul></div></div>`;
 }
+/* 錯誤診斷：從錯誤的答案推回可能的錯誤類型 */
+function diagnose(qo, ans, why) {
+  if (!qo) return null;
+  if (why) return why;
+  if (qo.opts) return ans === qo.a ? null : (qo.diagOpts && qo.diagOpts[ans]) || '選錯了';
+  const v = +ans, a = +qo.a;
+  if (qo.a == null || ans == null || ans === '' || isNaN(v) || v === a) return null;
+  const hit = (qo.diag || []).find(d => Math.abs(+d.v - v) < 1e-9); if (hit) return hit.why;
+  const k = qo.concept;
+  if (['tri', 'trap', 'compound', 'road'].includes(k) && v === a * 2) return '忘了 ÷ 2';
+  if (k === 'pg' && v === a / 2) return '多除以 2（和三角形公式搞混）';
+  if (k === 'findH-tri' && v === a / 2) return '忘了先 × 2';
+  if (v === a * 2) return '多乘了 2'; if (v === a / 2) return '多除以 2';
+  return '其他（計算錯誤或看錯數字）';
+}
+const qObj = q => q ? (q.type === 'step' ? (q.fn && q.fn.meta) || null : q) : null;
+function diagList(q, ansList) {
+  const m = new Map();
+  ansList.forEach(a => {
+    if (a.correct || (q && q.type === 'step' && !a.graded)) return;
+    const why = diagnose(qObj(q), a.answer, a.why || (a.payload && a.payload.why)); if (!why) return;
+    if (!m.has(why)) m.set(why, []); m.get(why).push(a.seat);
+  });
+  return [...m.entries()].sort((x, y) => y[1].length - x[1].length);
+}
+function diagHTML(q, ansList, showSeats) {
+  const L = diagList(q, ansList); if (!L.length) return '';
+  return `<div class="diag"><div class="note">🔍 錯誤診斷</div>${L.map(([w, seats]) => `<div class="dg"><b>${seats.length} 人</b>${esc(w)}${showSeats ? `<small>（${seats.sort((a, b) => a - b).join('、')} 號）</small>` : ''}</div>`).join('')}</div>`;
+}
 const conceptMini = k => CONCEPTS[k] ? `<div class="cmini">📘 重點：${CONCEPTS[k].f}</div>` : '';
 
 /* ---------- 題目產生器 ---------- */
@@ -587,7 +628,9 @@ function genPG(kind) {
   if (kind === 'slant') { [s, h] = pick([[3, 4], [4, 3]]); b = R(5, 8); slant = 5; }
   else if (kind === 'out') { b = R(3, 4); h = R(2, 4); s = b + R(1, 2); }
   else { b = R(4, 9); h = R(2, 6); s = R(1, 3) * pick([1, -1]); }
-  return { concept: 'pg', tag: '平行四邊形', q: '這個平行四邊形的面積是多少平方公分？', fig: pgFigure(b, h, s, { slant }), a: b * h, unit: '平方公分',
+  const diag = [{ v: b * h / 2, why: '多除以 2（和三角形公式搞混）' }, { v: (b + h) * 2, why: '算成周長' }, { v: b + h, why: '把底和高相加' }];
+  if (slant) diag.unshift({ v: b * slant, why: '把斜邊當成高' });
+  return { concept: 'pg', diag, tag: '平行四邊形', q: '這個平行四邊形的面積是多少平方公分？', fig: pgFigure(b, h, s, { slant }), a: b * h, unit: '平方公分',
     hint: slant ? '小心！斜邊 ' + slant + ' 公分不是高。' + HINT_PG : HINT_PG, exp: `底 × 高 ＝ ${b} × ${h} ＝ ${b * h}（平方公分）` };
 }
 function genTri(kind) {
@@ -597,31 +640,35 @@ function genTri(kind) {
     else if (kind === 'right') { b = R(3, 8); h = R(2, 6); a = 0; }
     else { b = R(4, 9); h = R(2, 7); a = R(1, b - 1); }
   } while ((b * h) % 2);
-  return { concept: 'tri', tag: '三角形', q: '這個三角形的面積是多少平方公分？', fig: triFigure(b, h, a), a: b * h / 2, unit: '平方公分',
+  const diag = [{ v: b * h, why: '忘了 ÷ 2' }];
+  if (a > b) diag.push({ v: a * h / 2, why: '把延長線加進底' }, { v: a * h, why: '把延長線加進底，又忘了 ÷ 2' });
+  return { concept: 'tri', diag, tag: '三角形', q: '這個三角形的面積是多少平方公分？', fig: triFigure(b, h, a), a: b * h / 2, unit: '平方公分',
     hint: (kind === 'out' ? '這個三角形的高在外面，要把底延長才畫得出來。' : '') + HINT_TRI, exp: `底 × 高 ÷ 2 ＝ ${b} × ${h} ÷ 2 ＝ ${b * h / 2}（平方公分）` };
 }
 function genTrap() {
   let u, l, h;
   do { u = R(2, 6); l = u + R(2, 5); h = R(2, 6); } while (((u + l) * h) % 2);
   const s = R(1, l - u - 1);
-  return { concept: 'trap', tag: '梯形', q: '這個梯形的面積是多少平方公分？', fig: trapFigure(u, l, h, s), a: (u + l) * h / 2, unit: '平方公分',
+  const diag = [{ v: (u + l) * h, why: '忘了 ÷ 2' }, { v: l * h / 2, why: '只用下底，忘了加上底' }, { v: u * h / 2, why: '只用上底，忘了加下底' }, { v: l * h, why: '當成長方形（下底 × 高）' }];
+  return { concept: 'trap', diag, tag: '梯形', q: '這個梯形的面積是多少平方公分？', fig: trapFigure(u, l, h, s), a: (u + l) * h / 2, unit: '平方公分',
     hint: HINT_TRAP, exp: `(上底＋下底) × 高 ÷ 2 ＝ (${u}＋${l}) × ${h} ÷ 2 ＝ ${(u + l) * h / 2}（平方公分）` };
 }
 function genFindH(kind) {
   if (kind === 'pg') {
     const b = R(4, 9), h = R(2, 6), s = R(1, 2);
-    return { concept: 'findH-pg', tag: '求高', q: `平行四邊形的面積是 <span class="o">${b * h} 平方公分</span>，底是 ${b} 公分，高是幾公分？`, fig: pgFigure(b, h, s, { hQ: true }), a: h, unit: '公分',
+    return { concept: 'findH-pg', diag: [{ v: h / 2, why: '多除以 2（和三角形搞混）' }, { v: h * 2, why: '多乘了 2' }], tag: '求高', q: `平行四邊形的面積是 <span class="o">${b * h} 平方公分</span>，底是 ${b} 公分，高是幾公分？`, fig: pgFigure(b, h, s, { hQ: true }), a: h, unit: '公分',
       hint: '底 × 高 ＝ 面積，所以 高 ＝ 面積 ÷ 底', exp: `${b * h} ÷ ${b} ＝ ${h}（公分）` };
   }
   let b, h; do { b = R(4, 9); h = R(2, 7); } while ((b * h) % 2);
   const a = R(1, b - 1);
-  return { concept: 'findH-tri', tag: '求高', q: `三角形的面積是 <span class="o">${b * h / 2} 平方公分</span>，底是 ${b} 公分，高是幾公分？`, fig: triFigure(b, h, a, { hQ: true }), a: h, unit: '公分',
+  return { concept: 'findH-tri', diag: [{ v: h / 2, why: '忘了先 × 2（直接用面積 ÷ 底）' }, { v: h / 4, why: '用面積 ÷ 2 ÷ 底' }], tag: '求高', q: `三角形的面積是 <span class="o">${b * h / 2} 平方公分</span>，底是 ${b} 公分，高是幾公分？`, fig: triFigure(b, h, a, { hQ: true }), a: h, unit: '公分',
     hint: '兩個一樣的三角形拼成平行四邊形，面積是 ' + b * h / 2 + ' × 2 ＝ ' + b * h + '。再用 面積 ÷ 底 求高。', exp: `${b * h / 2} × 2 ÷ ${b} ＝ ${h}（公分）` };
 }
 function genMult() {
   const k = R(2, 5), which = pick(['高', '底']), other = which === '高' ? '底' : '高';
   const opts = [...new Set([k, k * 2, 1, k + 1])].map(n => n === 1 ? '一樣大' : n + ' 倍');
-  return { concept: 'mult', tag: '變化', q: `三角形的${other}不變，${which}變成原來的 <span class="o">${k} 倍</span>，面積會變成原來的幾倍？`, fig: multFigure(k, which),
+  const diagOpts = { [k * 2 + ' 倍']: '以為面積會變成 2 倍的倍數', '一樣大': '以為底或高變了，面積不會變', [(k + 1) + ' 倍']: '倍數算錯' };
+  return { concept: 'mult', diagOpts, tag: '變化', q: `三角形的${other}不變，${which}變成原來的 <span class="o">${k} 倍</span>，面積會變成原來的幾倍？`, fig: multFigure(k, which),
     opts: shuffle(opts), a: k + ' 倍', exp: `${other}不變時，${which}變成 ${k} 倍，面積也變成 ${k} 倍。`, hint: '試著用 底 × 高 ÷ 2 算算看兩個三角形。' };
 }
 function multFigure(k, which) {
@@ -638,7 +685,7 @@ function genHouse() {
   let g = poly([A, B, C, T, D], 'shape s-or') + heightMark(T, [T[0], 1 + t], D, C, t + ' 公分');
   g += txt((A[0] + B[0]) / 2, A[1] + .6, w + ' 公分', 'lbl lb') + txt(B[0] + .25, (B[1] + C[1]) / 2, r + ' 公分', 'lbl', 'start');
   const hintFig = fig(w + 4, t + r + 2, g + seg(D, C, 'cut'));
-  return { concept: 'compound', tag: '複合圖形', q: '這個像房子的圖形，面積是多少平方公分？', fig: fig(w + 4, t + r + 2, g), hintFig, a: w * r + w * t / 2, unit: '平方公分',
+  return { concept: 'compound', diag: [{ v: w * r + w * t, why: '屋頂的三角形忘了 ÷ 2' }, { v: w * (r + t), why: '整個當成一個長方形' }, { v: w * r, why: '漏算屋頂的三角形' }], tag: '複合圖形', q: '這個像房子的圖形，面積是多少平方公分？', fig: fig(w + 4, t + r + 2, g), hintFig, a: w * r + w * t / 2, unit: '平方公分',
     hint: '沿著虛線切開：下面是長方形，上面是三角形，再加起來。', exp: `${w} × ${r} ＋ ${w} × ${t} ÷ 2 ＝ ${w * r} ＋ ${w * t / 2} ＝ ${w * r + w * t / 2}（平方公分）` };
 }
 function genL() {
@@ -649,7 +696,7 @@ function genL() {
   g += txt(1 + W - a / 2, 1 + c - .45, a, 'lbl') + txt(1 + W + .25, 1 + c + (H - c) / 2, (H - c) + ' 公分', 'lbl', 'start');
   g += txt(1 + W / 2, 1 + H + .6, W + ' 公分', 'lbl lb') + txt(.75, 1 + H / 2, H + ' 公分', 'lbl', 'end');
   const hintFig = fig(W + 4, H + 2, g + seg([1, 1 + c], [1 + W - a, 1 + c], 'cut'));
-  return { concept: 'compound', tag: '複合圖形', q: '這個 L 形的面積是多少平方公分？（單位：公分）', fig: fig(W + 4, H + 2, g), hintFig, a: W * H - a * c, unit: '平方公分',
+  return { concept: 'compound', diag: [{ v: W * H, why: '沒扣掉缺角' }, { v: W * H + a * c, why: '缺角沒扣反而加上去' }], tag: '複合圖形', q: '這個 L 形的面積是多少平方公分？（單位：公分）', fig: fig(W + 4, H + 2, g), hintFig, a: W * H - a * c, unit: '平方公分',
     hint: '可以切成兩個長方形相加，也可以用大長方形扣掉缺角。', exp: `${W} × ${H} − ${a} × ${c} ＝ ${W * H - a * c}（平方公分）` };
 }
 
@@ -1005,7 +1052,7 @@ function st1(part) {
       segs: [{ id: 'b', a: [1, 4], b: [5, 4], label: '8 公分', lx: 3, ly: 4.6 }, { id: 'h', a: [3, 1], b: [3, 4], label: '6 公分', lx: 3.2, ly: 2.5, anchor: 'start' }, { id: 'g', a: [1, 4], b: [3, 1], label: '7 公分', lx: 1.75, ly: 2.3, anchor: 'end' }],
       asks: [{ name: '底', id: 'b', hint: '底是下面那條邊。' }, { name: '高', id: 'h', hint: '高要和底垂直。', why: '7 公分是斜邊，不是高！' }],
       q: '課本例題 4、5：', done: '底 8 公分、高 6 公分。斜邊 7 公分用不到！' }),
-    numQ({ tag: '例題 5', q: '這個平行四邊形的面積是多少平方公分？', fig: pgFigure(4, 3, 2, { lb: '8 公分', lh: '6 公分', slant: 7, nogrid: true }), a: 48, unit: '平方公分', hint: '斜邊 7 公分不是高喔！' + HINT_PG, exp: '8 × 6 ＝ 48（平方公分）' }),
+    numQ({ concept: 'pg', diag: [{ v: 56, why: '把斜邊（7 公分）當成高' }, { v: 24, why: '多除以 2（和三角形公式搞混）' }], tag: '例題 5', q: '這個平行四邊形的面積是多少平方公分？', fig: pgFigure(4, 3, 2, { lb: '8 公分', lh: '6 公分', slant: 7, nogrid: true }), a: 48, unit: '平方公分', hint: '斜邊 7 公分不是高喔！' + HINT_PG, exp: '8 × 6 ＝ 48（平方公分）' }),
     numQ(genPG('in')), numQ(genPG('slant')), numQ(genPG('out')), numQ(genPG('in')),
   ];
   return part === 'a' ? all.slice(0, 7) : [...all.slice(7, 9), ...heightsPG(), ...all.slice(9)];
@@ -1476,7 +1523,9 @@ function stPrac() {
     numQ({ tag: '練習園地', q: '學校有一塊長 20 公尺、寬 12 公尺的長方形土地，中間藍色部分要種波斯菊（藍色的四個角在每邊的正中間）。種波斯菊的面積是多少平方公尺？', fig: flower.fig, methods: flower.methods, a: 120, unit: '平方公尺', hint: '把藍色部分切成三角形來算。', exp: '10 × 6 ÷ 2 × 4 ＝ 120（平方公尺）' }),
     numQ({ tag: '練習園地', q: '塗色部分（扣掉道路）的面積是多少平方公尺？', fig: roadFigure(13, 30, 8, 3, '公尺', false), methods: [{ name: '道路移走', fig: roadFigure(13, 30, 8, 3, '公尺', true), note: '上底 13 − 3 ＝ 10，下底 30 − 3 ＝ 27' }], a: 148, unit: '平方公尺', hint: '把道路移走，上底、下底都要減掉路寬。', exp: '(10 ＋ 27) × 8 ÷ 2 ＝ 148（平方公尺）' }),
     numQ({ tag: '練習園地', q: '三個三角形的<b>高都是 2 公分</b>，底分別是 4、8、12 公分。三個三角形的面積合起來是多少平方公分？', fig: triples, a: 24, unit: '平方公分', hint: '可以一個一個算再加起來；也可以把底加起來 4＋8＋12，當成一個大三角形的底。', exp: '4×2÷2 ＋ 8×2÷2 ＋ 12×2÷2 ＝ 4 ＋ 8 ＋ 12 ＝ 24；或 (4＋8＋12)×2÷2 ＝ 24' }),
-  ], null, ['pg', 'trap', 'pg', 'tri', 'tri', 'pg', 'compound', 'road', 'tri']);
+  ], null, ['pg', 'trap', 'pg', 'tri', 'tri', 'pg', 'compound', 'road', 'tri']).map((f, i) => {
+    const d = [[{ v: 168, why: '把斜邊當成高' }], [{ v: 120, why: '忘了 ÷ 2' }, { v: 44, why: '只用下底' }], [{ v: 837, why: '把斜邊當成高' }], [{ v: 56, why: '把延長線加進底' }, { v: 84, why: '忘了 ÷ 2' }], [{ v: 28, why: '忘了 ÷ 2' }], [{ v: 18, why: '多除以 2（和三角形公式搞混）' }], [{ v: 240, why: '算成整塊長方形' }], [{ v: 172, why: '沒有扣掉路寬' }], [{ v: 48, why: '忘了 ÷ 2' }]][i];
+    if (f.meta && d) f.meta.diag = d; return f; });
 }
 
 /* =====================================================
@@ -1688,7 +1737,7 @@ const LIVE_SETS = {
     LN(genPG('in')), LN(genPG('slant')),
     pullQ({ q: '從頂點<span style="color:var(--violet)">●</span>畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>（拖到 90°）。', cols: 10, rows: 6, shape: [[1, 5], [7, 5], [9, 1], [3, 1]], base: [[1, 5], [7, 5]], apex: [9, 1], range: [-.15, 1.45], startT: .3, exp: '高畫在圖形外面，要用到底邊的延長線。' }),
     LN(genPG('out')),
-    LC({ concept: 'pg', tag: '公式', q: '平行四邊形的面積怎麼算？', opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 斜邊', '(底 ＋ 高) × 2']), a: '底 × 高', exp: '切割重組成長方形：長方形的長＝底、寬＝高。' }),
+    LC({ concept: 'pg', diagOpts: { '底 × 高 ÷ 2': '和三角形公式搞混', '底 × 斜邊': '把斜邊當成高', '(底 ＋ 高) × 2': '和周長搞混' }, tag: '公式', q: '平行四邊形的面積怎麼算？', opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 斜邊', '(底 ＋ 高) × 2']), a: '底 × 高', exp: '切割重組成長方形：長方形的長＝底、寬＝高。' }),
     geoQ('用釘板圍出一個面積 <span class="o">8 平方公分</span>的<b>平行四邊形</b>（不可以是長方形）。', SQ, [], chkPG(8), '底 × 高 ＝ 8，例如底 4、高 2，或底 2、高 4。', 'pg'),
     LN(genFindH('pg')),
   ] },
@@ -1696,15 +1745,15 @@ const LIVE_SETS = {
     LN(genTri('in')),
     pullQ({ q: '鈍角三角形！從頂點<span style="color:var(--violet)">●</span>畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>。', cols: 10, rows: 6, shape: [[1, 5], [4, 5], [7, 1]], base: [[1, 5], [4, 5]], apex: [7, 1], range: [-.2, 2.6], startT: .5, exp: '鈍角三角形的高可能在外面，要延長底邊。' }),
     LN(genTri('right')),
-    LC({ concept: 'tri', tag: '公式', q: '三角形的面積怎麼算？', opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 高 × 2', '(底 ＋ 高) ÷ 2']), a: '底 × 高 ÷ 2', exp: '兩個全等三角形拼成平行四邊形，三角形是它的一半。' }),
+    LC({ concept: 'tri', diagOpts: { '底 × 高': '忘了 ÷ 2', '底 × 高 × 2': '把「一半」想成「兩倍」', '(底 ＋ 高) ÷ 2': '公式記錯（把乘變成加）' }, tag: '公式', q: '三角形的面積怎麼算？', opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 高 × 2', '(底 ＋ 高) ÷ 2']), a: '底 × 高 ÷ 2', exp: '兩個全等三角形拼成平行四邊形，三角形是它的一半。' }),
     LN(genTri('out')),
     geoQ('用釘板圍出一個面積 <span class="o">6 平方公分</span>的<b>三角形</b>。', [[1, 5], [3, 5], [2, 4]], [], chkTri(6), '底 × 高 ÷ 2 ＝ 6，底 × 高要等於 12。', 'tri'),
     LN(genFindH('tri')),
   ] },
   '8-3': { name: '8-3 梯形的面積', make: () => [
-    LC({ concept: 'trap', tag: '想想看', q: '兩個全等的梯形拼成平行四邊形，平行四邊形的<span class="k">底</span>是梯形的什麼？', opts: shuffle(['上底 ＋ 下底', '下底', '上底', '上底 × 下底']), a: '上底 ＋ 下底', exp: '平行四邊形的底是梯形的上底和下底接起來的。' }),
+    LC({ concept: 'trap', diagOpts: { '下底': '只看下底', '上底': '只看上底', '上底 × 下底': '把相加做成相乘' }, tag: '想想看', q: '兩個全等的梯形拼成平行四邊形，平行四邊形的<span class="k">底</span>是梯形的什麼？', opts: shuffle(['上底 ＋ 下底', '下底', '上底', '上底 × 下底']), a: '上底 ＋ 下底', exp: '平行四邊形的底是梯形的上底和下底接起來的。' }),
     LN(genTrap()),
-    LN({ concept: 'trap', tag: '例題 5', q: '這個梯形的面積是多少平方公分？', fig: trapFigure(4, 7, 3, 1, { lu: '8 公分', ll: '14 公分', lh: '6 公分', nogrid: true }), a: 66, unit: '平方公分', exp: '(8 ＋ 14) × 6 ÷ 2 ＝ 66' }),
+    LN({ concept: 'trap', diag: [{ v: 132, why: '忘了 ÷ 2' }, { v: 77, why: '把斜邊（7 公分）當成高' }, { v: 42, why: '只用下底' }, { v: 24, why: '只用上底' }], tag: '例題 5', q: '這個梯形的面積是多少平方公分？', fig: trapFigure(4, 7, 3, 1, { lu: '8 公分', ll: '14 公分', lh: '6 公分', nogrid: true }), a: 66, unit: '平方公分', exp: '(8 ＋ 14) × 6 ÷ 2 ＝ 66' }),
     LN(genTrap()),
     geoQ('用釘板圍出一個面積 <span class="o">6 平方公分</span>的<b>梯形</b>。', SQ, [], chkTrap(6), '(上底 ＋ 下底) × 高 ÷ 2 ＝ 6。', 'trap'),
     LN(genTrap()),
@@ -1713,7 +1762,7 @@ const LIVE_SETS = {
     geoQ('藍色的底固定是 4 公分。移動紅色頂點，圍出面積 <span class="o">8 平方公分</span>的三角形。<br><small>看看全班的頂點都在哪裡？</small>', [[1, 5], [5, 5], [2, 3]], [0, 1], chkTri(8), '頂點都在同一排（高都是 4）：<b>等底等高，面積一樣</b>。', 'equal'),
     LC(genMult()), LC(genMult()),
     LN(genHouse()), LN(genL()),
-    LN({ concept: 'road', tag: '道路', q: '扣掉道路後，剩下的面積是多少平方公尺？', fig: roadFigure(23, 35, 21, 4, '公尺', false), a: 525, unit: '平方公尺', exp: '(19 ＋ 31) × 21 ÷ 2 ＝ 525' }),
+    LN({ concept: 'road', diag: [{ v: 609, why: '沒扣掉道路' }, { v: 567, why: '平移後只扣了一次路寬' }, { v: 1050, why: '忘了 ÷ 2' }], tag: '道路', q: '扣掉道路後，剩下的面積是多少平方公尺？', fig: roadFigure(23, 35, 21, 4, '公尺', false), a: 525, unit: '平方公尺', exp: '(19 ＋ 31) × 21 ÷ 2 ＝ 525' }),
   ] },
   'review': { name: '總複習（10 題）', make: () => [
     LN(genPG('in')), LN(genPG('slant')), LN(genTri('in')), LN(genTri('out')), LN(genTrap()), LN(genTrap()),
@@ -1799,7 +1848,7 @@ function renderLiveQ(q, stage, panel, onSubmit, onDraft) {
     });
     panel.insertAdjacentHTML('beforeend', '<div class="note" style="margin-bottom:10px">拖動紅色圓圈，把橡皮筋套到別的釘子上。圍好了再按「送出」。</div>');
     panel.appendChild(send);
-    send.onclick = () => { lock(); const a = area2(ps) / 2, r = q.check(ps, a); onSubmit(`${a} 平方公分`, { ps }, r === true); };
+    send.onclick = () => { lock(); const a = area2(ps) / 2, r = q.check(ps, a); onSubmit(`${a} 平方公分`, { ps, why: r === true ? null : r }, r === true); };
   } else if (q.type === 'pull') {
     let t = q.startT;
     stage.innerHTML = pullSVG(q, t);
@@ -1820,7 +1869,7 @@ function renderLiveQ(q, stage, panel, onSubmit, onDraft) {
     }
     panel.insertAdjacentHTML('beforeend', '<div class="note" style="margin-bottom:10px">拖動紫色圓點，沿著底邊（和延長線）滑動，覺得畫好了再按「送出」。</div>');
     panel.appendChild(ag); panel.appendChild(send); draw();
-    send.onclick = () => { lock(); const I = pullInfo(q, t); onSubmit(`${I.ang}°`, { t }, I.ok); };
+    send.onclick = () => { lock(); const I = pullInfo(q, t); onSubmit(`${I.ang}°`, { t, why: I.ok ? null : (I.ang < 90 ? `還沒和底垂直（畫成 ${I.ang}°）` : null) }, I.ok); };
   }
 }
 
@@ -1831,7 +1880,7 @@ function liveShell(title) {
   show('live'); $('#live').classList.remove('pick'); $('#subTitle').textContent = title;
   return { stage: $('#lstage'), panel: $('#lpanel'), top: $('#ltop'), below: $('#lbelow') };
 }
-function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; if (liveChan && sb) sb.removeChannel(liveChan); liveChan = null; liveMode = null; }
+function stopLive() { const hb = $('#helpBtn'); if (hb) hb.remove(); if (liveTimer) clearInterval(liveTimer); liveTimer = null; if (liveChan && sb) sb.removeChannel(liveChan); liveChan = null; liveMode = null; }
 function digitPad(onKey) {
   const pad = mk('div', 'pad');
   ['7', '8', '9', '4', '5', '6', '1', '2', '3', '⌫', '0', '✓'].forEach(k => { const b = mk('button', k === '✓' ? 'ok' : k === '⌫' ? 'del' : '', k === '✓' ? '確定' : k); b.onclick = () => onKey(k); pad.appendChild(b); });
@@ -1937,7 +1986,7 @@ async function studentRefresh() {
   const c = sb;
   const [{ data: room }, { data: me }, { data: ans }, { data: plAll }] = await Promise.all([
     c.from('rooms').select('*').eq('code', S.code).maybeSingle(),
-    c.from('players').select('seat').eq('room_code', S.code).eq('seat', S.seat).maybeSingle(),
+    c.from('players').select('seat,help').eq('room_code', S.code).eq('seat', S.seat).maybeSingle(),
     c.from('answers').select('seat,q_index,answer,correct,graded:payload->graded').eq('room_code', S.code),
     c.from('players').select('seat,nick').eq('room_code', S.code).order('seat'),
   ]);
@@ -1947,6 +1996,7 @@ async function studentRefresh() {
   if (!me) { localStorage.removeItem('area-live-student'); return studentJoin(S.code, '老師把你移出房間了，請重新加入'); }
   S.room = room;
   const L = { stage: $('#lstage'), panel: $('#lpanel'), top: $('#ltop'), below: $('#lbelow') };
+  helpBtn(room.phase === 'question' && !(ans || []).some(a => a.seat === S.seat && a.q_index === room.q_index), me.help);
   const mineAll = (ans || []).filter(a => a.seat === S.seat);
   const cur = room.q_index, q = S.qs[cur], my = mineAll.find(a => a.q_index === cur);
   const nAns = (ans || []).filter(a => a.q_index === cur).length;
@@ -2001,6 +2051,15 @@ async function studentRefresh() {
   if (room.phase !== 'question' || my) { /* 草稿不用了 */ }
 }
 
+/* 🙋 我需要幫忙：學生按一下，老師畫面上他的卡片會閃黃燈；換題時自動取消 */
+function helpBtn(show, on) {
+  let b = $('#helpBtn');
+  if (!show || liveMode !== 'student') { if (b) b.remove(); return; }
+  if (!b) { b = mk('button', 'helpbtn'); b.id = 'helpBtn'; document.body.appendChild(b); }
+  b.classList.toggle('on', !!on); b.dataset.on = on ? '1' : '';
+  b.innerHTML = on ? '✋ 已通知老師<small>點一下取消</small>' : '🙋 我需要幫忙';
+  b.onclick = async () => { const v = b.dataset.on !== '1'; helpBtn(true, v); await sb.from('players').update({ help: v }).eq('room_code', S.code).eq('seat', S.seat); if (v) sSnap(); };
+}
 function renderStepLive(q, cur, L) {
   run = { final: false, q: 0, ok: 0, concept: (stOf(S.room.set_id) || {}).concept };
   let graded = false, okAll = true, ans = '', sent = false;
@@ -2026,10 +2085,14 @@ function renderStepLive(q, cur, L) {
 /* ---------- 老師端 ---------- */
 const T = { code: null, key: null, room: null, qs: null, players: [], answers: [], showAns: false, showOk: false, names: {} };
 /* 勇者 RPG 的稱號（座號 → 稱號，不含姓名）；老師可以匯入最新的 RPG 備份檔更新 */
+const DEFAULT_TITLES_DATE = '20261125';   // 由「同步勇者RPG到面積工坊.bat」自動更新
 const DEFAULT_TITLES = {"1": {"t": "熱血號手", "p": "pet_stormorca_3.png", "r": "UR"}, "2": {"t": "柯瑞接班人", "p": "pet_leopard_4.png", "r": "UR"}, "3": {"t": "不沉之錨", "p": "pet_jacklantern_3.png", "r": "UR"}, "4": {"t": "正義領航員", "p": "pet_lavarhino_4.png", "r": "UR"}, "5": {"t": "和風水手", "p": "pet_inkaxolotl_2.png", "r": "UR"}, "6": {"t": "無爭前鋒", "p": "pet_jadebeast_3.png", "r": "UR"}, "7": {"t": "向學先鋒", "p": "pet_stormorca_4.png", "r": "UR"}, "8": {"t": "慢工巧匠", "p": "pet_salamander_1.png", "r": "SR"}, "9": {"t": "戰鼓健將", "p": "pet_boltmeerkat_2.png", "r": "UR"}, "10": {"t": "慷慨副官", "p": "pet_jacklantern_2.png", "r": "UR"}, "11": {"t": "新到領航士", "p": "pet_leopard_4.png", "r": "UR"}, "12": {"t": "萬象探險家", "p": "pet_anchor_4.png", "r": "UR"}, "13": {"t": "馬鈴薯貓", "p": "pet_stormorca_2.png", "r": "UR"}, "15": {"t": "Peace Harbor船長", "p": "pet_bear_4.png", "r": "UR"}, "16": {"t": "萬能喵星人", "p": "pet_leopard_4.png", "r": "UR"}, "21": {"t": "海圖繪師", "p": "pet_catcaptain_3.png", "r": "UR"}, "22": {"t": "多藝少女", "p": "pet_pagechameleon_4.png", "r": "UR"}, "23": {"t": "躍動舞星", "p": "pet_thunderlynx_3.png", "r": "SSR"}, "24": {"t": "靜水舵手", "p": "pet_obsidiangolem_2.png", "r": "UR"}, "25": {"t": "舞踏隊長", "p": "pet_leopard_3.png", "r": "UR"}, "26": {"t": "破浪隊長", "p": "pet_qilin_4.png", "r": "UR"}, "27": {"t": "磐石雙星-姊", "p": "pet_bear_4.png", "r": "UR"}, "28": {"t": "磐石雙星-妹", "p": "pet_qilin_4.png", "r": "UR"}, "29": {"t": "笑顏笛手", "p": "pet_galalion_3.png", "r": "UR"}, "30": {"t": "自律運動員", "p": "pet_tidedragon_4.png", "r": "UR"}, "31": {"t": "巧手工匠", "p": "pet_whaleshark_4.png", "r": "UR"}, "32": {"t": "觀察先鋒", "p": "pet_anchor_4.png", "r": "UR"}, "33": {"t": "律動新星", "p": "pet_penciltops_4.png", "r": "UR"}};
 function loadNames() {
   try { T.names = JSON.parse(localStorage.getItem('area-live-names') || '{}'); } catch (e) { T.names = {}; }
-  try { T.titles = JSON.parse(localStorage.getItem('area-live-titles') || 'null') || DEFAULT_TITLES; } catch (e) { T.titles = DEFAULT_TITLES; }
+  try {
+    const imp = JSON.parse(localStorage.getItem('area-live-titles') || 'null'), at = localStorage.getItem('area-live-titles-date') || '';
+    T.titles = imp && at > DEFAULT_TITLES_DATE ? imp : DEFAULT_TITLES;   // 網站內建的名冊比較新就用網站的
+  } catch (e) { T.titles = DEFAULT_TITLES; }
 }
 const seatLabel = s => { const p = T.players.find(x => x.seat === s); return `<b>${s}</b>${PERSONA[s] ? ' ' + PERSONA[s] : ''}${p && p.nick ? ' <span class="nk">' + esc(p.nick) + '</span>' : ''}${T.names[s] ? ' <small>' + esc(T.names[s]) + '</small>' : ''}`; };
 function teacherHome() {
@@ -2070,7 +2133,7 @@ function teacherHome() {
     };
     sg.appendChild(b);
   });
-  L.panel.innerHTML = `<span class="qtag">勇者稱號</span><p class="note">學生輸入座號後，會自動顯示他在<b>勇者 RPG</b> 的稱號。目前有 <b id="ntitles">${Object.keys(T.titles).length}</b> 位的稱號${localStorage.getItem('area-live-titles-src') ? '（' + esc(localStorage.getItem('area-live-titles-src')) + '）' : '（11/24 備份）'}。</p>`;
+  L.panel.innerHTML = `<span class="qtag">勇者稱號</span><p class="note">學生輸入座號後，會自動顯示他在<b>勇者 RPG</b> 的稱號。目前有 <b id="ntitles">${Object.keys(T.titles).length}</b> 位的稱號${T.titles !== DEFAULT_TITLES && localStorage.getItem('area-live-titles-src') ? '（' + esc(localStorage.getItem('area-live-titles-src')) + '）' : `（網站內建，${DEFAULT_TITLES_DATE.slice(4, 6)}/${DEFAULT_TITLES_DATE.slice(6)} 備份）`}。</p>`;
   const imp = mk('button', 'big alt', '⬆️ 匯入最新的 RPG 備份檔'); const fi = mk('input'); fi.type = 'file'; fi.accept = '.json'; fi.style.display = 'none';
   imp.onclick = () => fi.click();
   fi.onchange = async () => {
@@ -2078,7 +2141,7 @@ function teacherHome() {
       const d = JSON.parse(await fi.files[0].text()); const t = {}, nm = {};
       (d.students || []).forEach(st => { if (st.seat) { const ap = st.activePet, pp = ap && st.pets && st.pets[ap]; t[st.seat] = { t: String(st.title || ''), p: pp ? `pet_${ap}_${(pp.stage || 0) + 1}.png` : '' }; if (st.name) nm[st.seat] = String(st.name); } });
       if (!Object.keys(t).length) throw new Error('檔案裡找不到學生');
-      T.titles = t; localStorage.setItem('area-live-titles', JSON.stringify(t)); localStorage.setItem('area-live-titles-src', fi.files[0].name);
+      T.titles = t; localStorage.setItem('area-live-titles', JSON.stringify(t)); localStorage.setItem('area-live-titles-src', fi.files[0].name); localStorage.setItem('area-live-titles-date', ((fi.files[0].name.match(/\d{8}/) || [])[0]) || new Date().toISOString().slice(0, 10).replace(/-/g, ''));
       if (Object.keys(nm).length) { T.names = nm; localStorage.setItem('area-live-names', JSON.stringify(nm)); ta.value = Object.entries(nm).map(([k, v]) => k + ' ' + v).join('\n'); }
       $('#ntitles').textContent = Object.keys(t).length; toast(`已匯入 ${Object.keys(t).length} 位的稱號`);
     } catch (e) { toast('匯入失敗：' + e.message); }
@@ -2118,7 +2181,7 @@ async function teacherOpen(code, key) {
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'answers', filter: `room_code=eq.${code}` }, ev => {
       const n = ev.new; if (!n || n.seat == null) return refresh();
-      n.graded = n.payload ? n.payload.graded : undefined;
+      n.graded = n.payload ? n.payload.graded : undefined; n.why = n.payload ? n.payload.why : undefined;
       if (!T.answers.some(a => a.seat === n.seat && a.q_index === n.q_index)) T.answers.push(n);
       rerender();
     })
@@ -2135,8 +2198,8 @@ async function teacherRefresh() {
   const c = sb;
   const [{ data: room }, { data: players }, { data: answers }] = await Promise.all([
     c.from('rooms').select('*').eq('code', T.code).maybeSingle(),
-    c.from('players').select('seat,nick,draft_q,updated_at').eq('room_code', T.code).order('seat'),
-    c.from('answers').select('seat,q_index,answer,correct,graded:payload->graded').eq('room_code', T.code),
+    c.from('players').select('seat,nick,help,draft_q,updated_at').eq('room_code', T.code).order('seat'),
+    c.from('answers').select('seat,q_index,answer,correct,graded:payload->graded,why:payload->>why').eq('room_code', T.code),
   ]);
   if (liveMode !== 'teacher') return;
   if (!room) { localStorage.removeItem('area-live-teacher'); return teacherHome(); }
@@ -2189,6 +2252,7 @@ function teacherRender() {
         const b = mk('button', 'tool' + (T[k] ? ' on' : ''), lab); b.onclick = () => { T[k] = !T[k]; b.classList.toggle('on', T[k]); teacherRender(); }; tg.appendChild(b);
       });
       const fx = mk('button', 'tool', '🖥️ 全螢幕講解'); fx.onclick = () => openExplain(); tg.appendChild(fx);
+      const rpb = mk('button', 'tool', '📊 目前報告'); rpb.onclick = openReport; tg.appendChild(rpb);
     }
     const stat = $('#tstat'), btns = $('#tbtns');
     const all = seats.length > 0 && waiting.length === 0;
@@ -2219,6 +2283,7 @@ function teacherRender() {
     }
     $('#dist').innerHTML = (q.type === 'num' || q.type === 'choice') && (T.showAns || rv) ? distHTML(q, curAns, rv || T.showOk)
       : q.type === 'step' && T.showAns && curAns.some(a => a.graded) ? distHTML({ type: 'num', a: null }, curAns.filter(a => a.graded), false) : '';
+    if (rv || T.showOk) $('#dist').insertAdjacentHTML('beforeend', diagHTML(q, curAns, T.showAns));
     const ck = conceptOf(q, room.set_id), ex = q.exp || (q.fn && q.fn.meta && q.fn.meta.exp) || '';
     $('#tconcept').innerHTML = rv || T.showConcept ? conceptCard(ck, rv || q.type === 'step' ? ex : '') : '';
     L.below.innerHTML = tilesHTML(q, cur);
@@ -2226,15 +2291,100 @@ function teacherRender() {
     if (T.shown !== viewKey) { T.shown = viewKey; }
     L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">🏁</div><b>作答結束</b><p>${esc(setName(room.set_id))}</p></div>`;
     L.panel.innerHTML = `<span class="qtag">全班成績</span><p class="note">下表 ✓ 是答對、✗ 是答錯、空白是沒作答。</p>`;
+    const rp = mk('button', 'big', '📊 學習報告'); rp.onclick = openReport; L.panel.appendChild(rp);
+    const rw = mk('button', 'big', '🪙 匯出勇者RPG獎勵'); rw.onclick = openReward; L.panel.appendChild(rw);
     const dl = mk('button', 'big alt', '⬇️ 下載成績（CSV）'); dl.onclick = downloadCSV; L.panel.appendChild(dl);
     const nb = mk('button', 'big', '開新房間'); nb.onclick = () => { localStorage.removeItem('area-live-teacher'); teacherHome(); }; L.panel.appendChild(nb);
     L.below.innerHTML = summaryHTML();
   }
   L.below.querySelectorAll('[data-lb]').forEach(el => el.onclick = () => openLB(+el.dataset.lb));
+  L.below.querySelectorAll('[data-help]').forEach(b => b.onclick = async e => { e.stopPropagation(); const st = +b.dataset.help; const p = T.players.find(x => x.seat === st); if (p) p.help = false; teacherRender(); await sb.from('players').update({ help: false }).eq('room_code', T.code).eq('seat', st); });
+  const nh = T.players.filter(p => p.help && cur >= 0 && !T.answers.some(a => a.seat === p.seat && a.q_index === cur)).length;
+  if (nh) L.top.querySelector('.livebar').insertAdjacentHTML('beforeend', `<span class="helpcount">🙋 需要幫忙 <b>${nh}</b> 人</span>`);
   L.below.querySelectorAll('[data-kick]').forEach(b => b.onclick = async e => {
     e.stopPropagation(); const s = +b.dataset.kick;
     if (confirm(`把 ${s} 號移出房間？（例如學生坐錯座號）`)) { await sb.rpc('kick_seat', { p_code: T.code, p_key: T.key, p_seat: s }); teacherRefresh(); }
   });
+}
+/* 學習報告：概念掌握、常見錯誤、每位學生、需要關心的同學 */
+function reportData() {
+  const room = T.room, step = isSt(room.set_id), byC = {}, per = {}, mistakes = new Map();
+  T.answers.forEach(a => {
+    const q = T.qs[a.q_index]; if (!q) return;
+    if (step && !a.graded) return;
+    const k = conceptOf(q, room.set_id) || 'other';
+    (byC[k] = byC[k] || { n: 0, ok: 0 }).n++; if (a.correct) byC[k].ok++;
+    const P = (per[a.seat] = per[a.seat] || { n: 0, ok: 0, c: {} }); P.n++; if (a.correct) P.ok++;
+    (P.c[k] = P.c[k] || { n: 0, ok: 0 }).n++; if (a.correct) P.c[k].ok++;
+    if (!a.correct) { const w = diagnose(qObj(q), a.answer, a.why); if (w) { if (!mistakes.has(w)) mistakes.set(w, new Set()); mistakes.get(w).add(a.seat); } }
+  });
+  const keys = Object.keys(byC).sort((x, y) => byC[x].ok / byC[x].n - byC[y].ok / byC[y].n);
+  return { byC, per, keys, mistakes: [...mistakes.entries()].map(([w, s]) => [w, [...s].sort((a, b) => a - b)]).sort((x, y) => y[1].length - x[1].length) };
+}
+function reportHTML() {
+  const room = T.room, D = reportData(), roster = room.titles || {};
+  const pct = (o) => o && o.n ? Math.round(o.ok / o.n * 100) : null;
+  const cname = k => CONCEPTS[k] ? CONCEPTS[k].t : '其他';
+  const color = v => v == null ? '#eee' : v >= 80 ? '#d8f3e4' : v >= 60 ? '#fff3c4' : '#fde0d6';
+  const weak = D.keys.filter(k => pct(D.byC[k]) < 70);
+  const care = T.players.filter(p => D.per[p.seat] && pct(D.per[p.seat]) < 60);
+  let h = `<div class="rp"><h1>⚓ 面積工坊 學習報告</h1><p class="rp-sub">${esc(setName(room.set_id))}　房間 ${room.code}　${new Date().toLocaleDateString('zh-TW')}　共 ${T.players.length} 人</p>`;
+  h += `<h2>📘 概念掌握（全班答對率）</h2>` + (D.keys.length ? D.keys.map(k => { const v = pct(D.byC[k]); return `<div class="rp-bar"><span>${cname(k)}</span><i><b style="width:${v}%;background:${v >= 80 ? '#20865a' : v >= 60 ? '#d9a441' : '#cf4527'}"></b></i><em>${v}%（${D.byC[k].ok}/${D.byC[k].n}）</em></div>`; }).join('') : '<p>還沒有可以計分的作答。</p>');
+  if (weak.length) h += `<p class="rp-tip">💡 建議下一節先複習：<b>${weak.map(cname).join('、')}</b>（答對率低於 70%）</p>`;
+  h += `<h2>🔍 常見錯誤</h2>` + (D.mistakes.length ? `<ul>${D.mistakes.slice(0, 8).map(([w, s]) => `<li><b>${esc(w)}</b>：${s.length} 人（${s.join('、')} 號）</li>`).join('')}</ul>` : '<p>沒有明顯的共同錯誤。</p>');
+  h += `<h2>👥 每位學生</h2><table class="rp-t"><tr><th>座號</th><th>稱號</th>${T.names && Object.keys(T.names).length ? '<th>姓名</th>' : ''}${D.keys.map(k => `<th>${cname(k)}</th>`).join('')}<th>總答對率</th></tr>`;
+  T.players.forEach(p => {
+    const P = D.per[p.seat], tot = pct(P);
+    h += `<tr><td>${p.seat}</td><td>${esc(p.nick || rT(roster[p.seat]))}</td>${T.names && Object.keys(T.names).length ? `<td>${esc(T.names[p.seat] || '')}</td>` : ''}${D.keys.map(k => { const c = P && P.c[k], v = pct(c); return `<td style="background:${color(v)}">${c ? `${c.ok}/${c.n}` : '—'}</td>`; }).join('')}<td style="background:${color(tot)};font-weight:900">${tot == null ? '—' : tot + '%'}</td></tr>`;
+  });
+  h += `</table>`;
+  if (care.length) h += `<p class="rp-tip">🫶 需要多關心（總答對率低於 60%）：${care.map(p => `${p.seat} 號`).join('、')}</p>`;
+  return h + `</div>`;
+}
+const REPORT_CSS = `.rp{font-family:'Noto Sans TC',sans-serif;color:#13314a}.rp h1{margin:0 0 4px}.rp h2{font-size:20px;margin:18px 0 8px;border-left:6px solid #2a7fa8;padding-left:8px}
+.rp-sub{color:#5d6c79;font-weight:700;margin:0}.rp-bar{display:grid;grid-template-columns:200px 1fr 130px;gap:10px;align-items:center;margin:5px 0;font-weight:700}
+.rp-bar i{display:block;height:18px;background:#eee;border-radius:9px;overflow:hidden}.rp-bar b{display:block;height:100%}.rp-bar em{font-style:normal}
+.rp-tip{background:#fff3d6;border-radius:10px;padding:8px 12px;font-weight:700}.rp ul{margin:0;padding-left:22px;line-height:1.8}
+.rp-t{border-collapse:collapse;width:100%;font-size:14px}.rp-t th,.rp-t td{border:1px solid #9fb3c2;padding:4px 6px;text-align:center}.rp-t th{background:#e6eef3}`;
+function openReport() {
+  let box = $('#lightbox'); if (!box) { box = mk('div', 'lightbox'); box.id = 'lightbox'; document.body.appendChild(box); }
+  box.innerHTML = `<div class="lbin rpin"><div class="lbhead"><b>📊 學習報告</b><span></span><button class="tool" id="rpPrint">🖨️ 列印／存成 PDF</button><button class="tool" id="lbX">✕ 關閉</button></div><div class="rpbody"><style>${REPORT_CSS}</style>${reportHTML()}</div></div>`;
+  $('#lbX').onclick = () => box.remove();
+  box.onclick = e => { if (e.target === box) box.remove(); };
+  $('#rpPrint').onclick = () => {
+    const w = window.open('', '_blank'); if (!w) return toast('請允許跳出視窗再按一次');
+    w.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>面積工坊學習報告 ${T.room.code}</title><style>body{margin:24px}${REPORT_CSS}</style></head><body>${reportHTML()}</body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 400);
+  };
+}
+/* 匯出勇者 RPG 獎勵：每答對一題 +N、全部完成 +M → 下載 .json，到 RPG 代幣記分板「📥 匯入面積工坊獎勵」 */
+function openReward() {
+  const room = T.room, step = isSt(room.set_id);
+  let per = +(localStorage.getItem('area-rw-per') || 1), bonus = +(localStorage.getItem('area-rw-bonus') || 2);
+  let box = $('#lightbox'); if (!box) { box = mk('div', 'lightbox'); box.id = 'lightbox'; document.body.appendChild(box); }
+  const calc = () => T.players.map(p => {
+    const mine = T.answers.filter(a => a.seat === p.seat), ok = mine.filter(a => a.correct && (!step || a.graded)).length, all = mine.length >= room.n_q;
+    const coins = Math.min(50, ok * per + (all ? bonus : 0));
+    return { seat: p.seat, nick: p.nick || rT((room.titles || {})[p.seat]), coins, reason: `${setName(room.set_id)}：答對 ${ok} 題${all && bonus ? '＋全部完成' : ''}` };
+  });
+  const draw = () => {
+    const items = calc(), total = items.reduce((a, b) => a + b.coins, 0);
+    box.innerHTML = `<div class="lbin rpin"><div class="lbhead"><b>🪙 匯出勇者RPG獎勵</b><span>共 ${total} 枚勇者幣</span><button class="tool" id="lbX">✕ 關閉</button></div>
+      <div class="rpbody"><div class="rwset">每答對 1 題 ＋<input type="number" id="rwPer" min="0" max="10" value="${per}"> 枚　全部完成再 ＋<input type="number" id="rwBonus" min="0" max="20" value="${bonus}"> 枚<small>（每人最多 50 枚）</small></div>
+      <div class="hgrid">${items.map(it => `<div class="hcard ${it.coins ? 'done' : 'wait'}"><span class="hseat">${it.seat}</span>${petImg((room.titles || {})[it.seat])}<div class="hrib">${esc(it.nick)}</div><div class="hst">🪙 +${it.coins}</div></div>`).join('')}</div>
+      <button class="big" id="rwGo" style="margin-top:14px">⬇️ 下載獎勵檔（.json）</button>
+      <p class="note">下載後打開勇者 RPG →「代幣記分板」→ 左邊「📥 匯入面積工坊獎勵」→ 選這個檔案。同一個檔案只能匯入一次，不會重複發。</p></div></div>`;
+    $('#lbX').onclick = () => box.remove();
+    $('#rwPer').onchange = e => { per = Math.max(0, Math.min(10, +e.target.value || 0)); localStorage.setItem('area-rw-per', per); draw(); };
+    $('#rwBonus').onchange = e => { bonus = Math.max(0, Math.min(20, +e.target.value || 0)); localStorage.setItem('area-rw-bonus', bonus); draw(); };
+    $('#rwGo').onclick = () => {
+      const data = { type: 'area-lab-reward', id: `area-lab-${room.code}-${room.seed}`, room: room.code, date: new Date().toLocaleDateString('zh-TW'), title: `面積工坊・${setName(room.set_id)}`, items: calc().filter(x => x.coins > 0).map(({ seat, coins, reason }) => ({ seat, coins, reason })) };
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+      a.download = `面積工坊獎勵_${room.code}_${new Date().toISOString().slice(0, 10)}.json`; a.click(); toast('已下載獎勵檔');
+    };
+  };
+  box.onclick = e => { if (e.target === box) box.remove(); };
+  draw();
 }
 /* 全螢幕講解：題目圖＋重要公式＋本題解法＋常見錯誤＋全班答對率 */
 function openExplain() {
@@ -2287,16 +2437,19 @@ function tilesHTML(q, cur) {
     const working = !a && big && p.draft_q === cur && p.draft;
     const showOk = a && (T.showOk || rv);
     let st, cls;
+    const hp = p.help && cur >= 0 && !a;
     if (cur < 0) { st = '🙋 已加入'; cls = 'in'; }
     else if (a) {
       if (q.type === 'step' && !a.graded) { st = '✅ 完成'; cls = 'done'; }
       else if (showOk) { st = a.correct ? '✅ 答對' : '❌ 答錯'; cls = a.correct ? 'done' : 'bad'; }
       else { st = '📮 已送出'; cls = 'sent'; }
     } else if (working) { st = '✏️ 操作中'; cls = 'work'; } else { st = '⏳ 等待中'; cls = 'wait'; }
+    if (cur < 0) { st = '🙋 已加入'; cls = 'in'; }
+    if (hp) { st = '🙋 需要幫忙'; cls += ' help'; }
     let thumb = '';
     if (big) { const im = a ? thumbOf(q, a.payload, showOk) : working ? thumbOf(q, p.draft) : ''; thumb = `<div class="thumb ${im ? 'zoom' : ''}" ${im ? `data-lb="${p.seat}"` : ''}>${im || '<span class="nothumb">還沒開始</span>'}</div>`; }
     const ans = a && (T.showAns || rv) ? `<div class="ta">${esc(a.answer)}</div>` : '';
-    return `<div class="hcard ${cls}"><span class="hseat">${p.seat}</span>${big ? '' : petImg(roster[p.seat])}${thumb}${pName(p.seat)}<div class="hrib">${big ? petImg(roster[p.seat], 'mini') : ''}${esc(p.nick || rT(roster[p.seat]))}</div>${T.names[p.seat] ? `<small class="hname">${esc(T.names[p.seat])}</small>` : ''}${ans}<div class="hst">${st}</div><button class="kick" data-kick="${p.seat}" title="移出">×</button></div>`;
+    return `<div class="hcard ${cls}"><span class="hseat">${p.seat}</span>${big ? '' : petImg(roster[p.seat])}${thumb}${pName(p.seat)}<div class="hrib">${big ? petImg(roster[p.seat], 'mini') : ''}${esc(p.nick || rT(roster[p.seat]))}</div>${T.names[p.seat] ? `<small class="hname">${esc(T.names[p.seat])}</small>` : ''}${ans}<div class="hst">${st}</div>${hp ? `<button class="hdone" data-help="${p.seat}">✓ 處理好了</button>` : ''}<button class="kick" data-kick="${p.seat}" title="移出">×</button></div>`;
   }).join('') + '</div>';
 }
 function distHTML(q, curAns, mark) {
