@@ -347,9 +347,10 @@ button.hcard.taken{opacity:.55}
 .cc-f{font-size:24px;font-weight:900;text-align:center;background:#fff3d6;border-bottom:2px dashed var(--rope)}
 .cc-f b{color:var(--blue)}.cc-f i{font-style:normal;color:var(--red)}
 .cc-s,.cc-i,.cc-m{font-size:16px;line-height:1.7;font-weight:700;color:#2b3a47}
-.cc-s b,.cc-i b,.cc-m b{display:block;color:var(--teal-d);font-size:15px}
+.ccard .cl{display:block;color:var(--teal-d);font-size:15px}
+.cc-s b:not(.cl),.cc-i b:not(.cl),.cc-m b:not(.cl){color:var(--blue)}
 .cc-s{background:#e8f6ee}.cc-m{background:#fdf0ea}.cc-m ul{margin:2px 0 0;padding-left:20px}
-.ccard.big .cc-t{font-size:26px}.ccard.big .cc-f{font-size:36px;padding:14px}.ccard.big .cc-s,.ccard.big .cc-i,.ccard.big .cc-m{font-size:21px}.ccard.big b{font-size:19px}
+.ccard.big .cc-t{font-size:26px}.ccard.big .cc-f{font-size:36px;padding:14px}.ccard.big .cc-s,.ccard.big .cc-i,.ccard.big .cc-m{font-size:21px}.ccard.big .cl{font-size:19px}
 .cmini{margin-top:8px;padding:6px 10px;border-radius:10px;background:#fff3d6;color:#5a3d00;font-size:16px}
 .cmini b{color:var(--blue)}.cmini i{font-style:normal;color:var(--red)}
 .xbody{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;min-height:0;overflow:auto;margin-top:10px}
@@ -583,10 +584,10 @@ function conceptOf(q, setId) {
   return CONCEPTS[k] ? k : null;
 }
 function conceptCard(k, exp, big) {
-  const c = CONCEPTS[k]; if (!c) return exp ? `<div class="ccard"><div class="cc-s"><b>本題解法</b>${exp}</div></div>` : '';
+  const c = CONCEPTS[k]; if (!c) return exp ? `<div class="ccard"><div class="cc-s"><b class="cl">本題解法</b>${exp}</div></div>` : '';
   return `<div class="ccard ${big ? 'big' : ''}"><div class="cc-t">📘 ${c.t}<small>課本 ${c.page}</small></div><div class="cc-f">${c.f}</div>` +
-    (exp ? `<div class="cc-s"><b>本題解法</b>${exp}</div>` : '') + `<div class="cc-i"><b>為什麼？</b>${c.i}</div>` +
-    `<div class="cc-m"><b>⚠️ 常見錯誤</b><ul>${c.m.map(x => `<li>${x}</li>`).join('')}</ul></div></div>`;
+    (exp ? `<div class="cc-s"><b class="cl">本題解法</b>${exp}</div>` : '') + `<div class="cc-i"><b class="cl">為什麼？</b>${c.i}</div>` +
+    `<div class="cc-m"><b class="cl">⚠️ 常見錯誤</b><ul>${c.m.map(x => `<li>${x}</li>`).join('')}</ul></div></div>`;
 }
 /* 錯誤診斷：從錯誤的答案推回可能的錯誤類型 */
 function diagnose(qo, ans, why) {
