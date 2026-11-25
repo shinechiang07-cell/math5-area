@@ -152,6 +152,27 @@ input[type=range]::-moz-range-thumb{width:34px;height:34px;border-radius:50%;bac
 .tagc{fill:var(--violet);stroke:#fff;stroke-width:3}
 .tagt{fill:#fff;font-family:var(--num);font-size:22px;font-weight:800}
 .scis{cursor:pointer}
+.flipg{transform-box:fill-box;transform-origin:center;transition:transform .55s cubic-bezier(.5,1.6,.5,1)}
+.flipg.r{transform:scaleY(-1)}
+.s-p1{fill:rgba(47,179,163,.5);stroke:var(--teal-d)}
+.s-p2{fill:rgba(243,154,61,.55);stroke:var(--or-d)}
+.s-p3{fill:rgba(122,79,208,.28);stroke:var(--violet)}
+.s-hole{fill:rgba(228,87,46,.12);stroke:var(--red);stroke-dasharray:6 5}
+.lbl.pc{font-size:17px;fill:#173b36}
+.foot{fill:var(--violet);stroke:#fff;stroke-width:3}
+.pull{stroke:var(--violet);stroke-width:4;stroke-linecap:round}
+.pull.ok{stroke:var(--green);stroke-width:5}
+.baseline{stroke:var(--blue);stroke-width:2.5;stroke-dasharray:6 7;opacity:.7}
+.angle{font-family:var(--num);font-size:24px;font-weight:800;fill:var(--violet);paint-order:stroke;stroke:#fffdf7;stroke-width:6px}
+.board{fill:#e9c58f;stroke:#8a5a2a;stroke-width:4}
+.peg{fill:#6b3f16}
+.band{fill:rgba(228,87,46,.16);stroke:#d63b1f;stroke-width:6;stroke-linejoin:round}
+.band.fixed{stroke:#2f6fde}
+.vh{cursor:grab}
+.vh .ring{fill:#fff;stroke:#d63b1f;stroke-width:4}
+.vh .halo{fill:rgba(214,59,31,.15)}
+.methods{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.methods .tool{flex:1;min-width:120px;font-size:17px}
 
 /* 結果 */
 .result{text-align:center;padding:10px 0}
@@ -397,8 +418,17 @@ const numQ = o => ctx => {
   const v = ans.querySelector('.v');
   let val = '', tries = 0, over = false;
   const pad = mk('div', 'pad');
-  const tools = mk('div', 'row'); tools.style.marginBottom = '10px';
-  if (o.hintFig && !run.final) {
+  const tools = mk('div', 'row'); tools.style.marginBottom = '10px'; const mnote = mk('div', 'fb');
+  if (o.methods && !run.final) {          // 多種切法：點按鈕切換，看見每一塊的面積
+    tools.className = 'methods';
+    tools.appendChild(mk('div', '', '<b style="font-size:16px;color:var(--dim)">✂️ 切切看：</b>'));
+    o.methods.forEach(m => {
+      const hb = mk('button', 'tool', m.name);
+      hb.onclick = () => { ctx.stage.innerHTML = m.fig; tools.querySelectorAll('.tool').forEach(x => x.classList.remove('on')); hb.classList.add('on'); mnote.innerHTML = m.note || ''; mnote.className = 'fb info show'; beep([520], .06); };
+      tools.appendChild(hb);
+    });
+    p.appendChild(tools); p.appendChild(mnote);
+  } else if (o.hintFig && !run.final) {
     const hb = mk('button', 'tool', '💡 切切看'); hb.onclick = () => { ctx.stage.innerHTML = o.hintFig; hb.disabled = true; hb.classList.add('on'); }; tools.appendChild(hb); p.appendChild(tools);
   }
   ['7', '8', '9', '4', '5', '6', '1', '2', '3', '⌫', '0', '✓'].forEach(k => {
@@ -414,7 +444,7 @@ const numQ = o => ctx => {
   });
   p.appendChild(pad);
   function finish(ok) {
-    over = true; pad.remove(); tools.remove();
+    over = true; pad.remove(); if (!o.methods) tools.remove();
     ctx.record(ok && tries === 0);
     if (o.after) o.after(ctx);
     nextBtn(ctx);
@@ -475,34 +505,178 @@ const infoStep = o => ctx => {
   sSnap(); nextBtn(ctx, o.btn || '繼續 →');
 };
 
-/* ---------- 「複製、旋轉、拼起來」實驗（三角形、梯形共用） ---------- */
-function dupLab(o) {
+/* ---------- 「剪開／複製 → 移動 → 拼起來」實驗（共用） ----------
+   o.fixed：不動的圖形；o.piece：可拖曳的那一塊
+   o.cutLine：有的話要先點 ✂️ 剪開；o.mode：'rot'（轉 180°）或 'flip'（翻面）
+   o.targets：[{ name, T:[dx,dy], tf:是否轉／翻 }]，全部拼過才算完成 */
+function moveLab(o) {
   return ctx => {
-    const xs = o.P.map(p => p[0]), ys = o.P.map(p => p[1]);
-    const C = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
-    const need = [2 * (o.M[0] - C[0]), 2 * (o.M[1] - C[1])];
-    let T = o.startT.slice(), T0, rot = false, done = false;
-    ctx.stage.innerHTML = fig(o.cols, o.rows, `${poly(o.P, 'shape s-or')}<g id="cp" class="drag"><g id="cpr" class="rotg">${poly(o.P, 'shape s-teal')}</g></g><g id="after"></g>`);
-    const svg = ctx.stage.querySelector('svg'), cp = svg.querySelector('#cp'), cpr = svg.querySelector('#cpr');
+    let T, T0, tf = false, cut = !o.cutLine, done = false, svg, cp, cpr;
+    const got = new Set();
     const place = () => cp.setAttribute('transform', `translate(${P(T[0])},${P(T[1])})`);
-    place();
-    ctx.panel.innerHTML = `<span class="qtag">動手做</span><div class="prompt">${o.text}</div>`;
-    const tools = mk('div', 'row'); const rb = mk('button', 'tool', '🔄 轉 180°'); tools.appendChild(rb); ctx.panel.appendChild(tools);
+    function draw() {
+      ctx.stage.innerHTML = fig(o.cols, o.rows, o.fixed.map(f => poly(f, 'shape s-or')).join('') +
+        `<g id="cp" class="${cut && !done ? 'drag' : ''}"><g id="cpr" class="${o.mode === 'flip' ? 'flipg' : 'rotg'}${tf ? ' r' : ''}">${poly(o.piece, 'shape ' + (cut ? 's-teal' : 's-or'))}</g></g>` +
+        (cut ? '' : `<g class="scis" id="sc">${seg(o.cutLine[0], o.cutLine[1], 'hgt')}${seg(o.cutLine[0], o.cutLine[1], 'hit')}<text x="${P(o.cutLine[0][0])}" y="${P(o.cutLine[0][1] - .5)}" font-size="34" text-anchor="middle">✂️</text></g>`) +
+        `<g id="after">${done ? o.afterSVG || '' : ''}</g>`);
+      svg = ctx.stage.querySelector('svg'); cp = svg.querySelector('#cp'); cpr = svg.querySelector('#cpr'); place();
+      if (!cut) svg.querySelector('#sc').onclick = () => {
+        cut = true; T = (o.nudge || [0, 0]).slice(); sSnap(); draw();
+        prompt.innerHTML = o.text2 || o.text; rb.disabled = false;
+      };
+      else if (!done) dragify(svg, cp, () => T0 = T.slice(), d => { T = [clamp(T0[0] + d[0], -3, o.cols), clamp(T0[1] + d[1], -3, o.rows)]; place(); }, () => check(true));
+    }
+    ctx.panel.innerHTML = `<span class="qtag">動手做</span><div class="prompt"></div>`;
+    const prompt = ctx.panel.querySelector('.prompt'); prompt.innerHTML = o.text;
+    const tools = mk('div', 'row'); const rb = mk('button', 'tool', o.mode === 'flip' ? '🔃 翻面' : '🔄 轉 180°');
+    if (o.mode) { tools.appendChild(rb); ctx.panel.appendChild(tools); }
+    rb.disabled = !cut;
     const fb = mk('div', 'fb'); fb.style.marginTop = '12px'; ctx.panel.appendChild(fb);
     function check(fromDrop) {
-      if (done) return;
-      const d = Math.hypot(T[0] - need[0], T[1] - need[1]);
-      if (rot && d < .8) {
-        done = true; T = need.slice(); place(); cp.classList.remove('drag'); sSnap(); confetti(30);
-        svg.querySelector('#after').innerHTML = o.afterSVG || '';
-        fb.className = 'fb good show'; fb.innerHTML = o.success; rb.disabled = true;
-        nextBtn(ctx, '繼續 →');
-      } else if (fromDrop && !rot && d < 1.6) {
-        fb.className = 'fb bad show'; fb.innerHTML = '方向不對，拼不起來！先按「🔄 轉 180°」再拖過去。';
+      if (done || !cut) return;
+      for (const g of o.targets) {
+        const d = Math.hypot(T[0] - g.T[0], T[1] - g.T[1]);
+        if (d < .8 && !!g.tf === tf) {
+          T = g.T.slice(); place(); sSnap();
+          if (got.has(g.name)) { fb.className = 'fb info show'; fb.innerHTML = `這個<b>${g.name}</b>已經拼過囉！${o.mode === 'flip' ? '按「🔃 翻面」' : ''}試試另一種。`; setTimeout(back, 1300); return; }
+          got.add(g.name);
+          if (got.size === o.targets.length) {
+            done = true; cp.classList.remove('drag'); confetti(30); rb.disabled = true;
+            svg.querySelector('#after').innerHTML = o.afterSVG || '';
+            fb.className = 'fb good show'; fb.innerHTML = o.success; nextBtn(ctx, '繼續 →');
+          } else {
+            fb.className = 'fb good show'; fb.innerHTML = `🎉 拼出<b>${g.name}</b>了！<br>${o.more || '還能拼出別的形狀嗎？'}`;
+            setTimeout(back, 2200);
+          }
+          return;
+        }
+        if (fromDrop && d < 1.6 && !!g.tf !== tf && !got.has(g.name)) {
+          fb.className = 'fb bad show'; fb.innerHTML = o.wrongMsg || '方向不對，拼不起來！先按「🔄 轉 180°」再拖過去。';
+        }
       }
     }
-    rb.onclick = () => { if (done) return; rot = !rot; cpr.classList.toggle('r', rot); rb.classList.toggle('on', rot); beep([440], .06); setTimeout(() => check(false), 560); };
-    dragify(svg, cp, () => { T0 = T.slice(); }, d => { if (done) return; T = [clamp(T0[0] + d[0], -2, o.cols), clamp(T0[1] + d[1], -2, o.rows)]; place(); }, () => check(true));
+    function back() { if (done) return; T = (o.nudge || o.startT || [0, 0]).slice(); tf = false; rb.classList.remove('on'); draw(); }
+    rb.onclick = () => { if (done || !cut) return; tf = !tf; cpr.classList.toggle('r', tf); rb.classList.toggle('on', tf); beep([440], .06); setTimeout(() => check(false), 560); };
+    T = (o.startT || [0, 0]).slice();
+    draw();
+  };
+}
+function dupLab(o) {
+  const xs = o.P.map(p => p[0]), ys = o.P.map(p => p[1]);
+  const C = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+  return moveLab({ ...o, fixed: [o.P], piece: o.P, mode: 'rot', targets: [{ name: '圖形', T: [2 * (o.M[0] - C[0]), 2 * (o.M[1] - C[1])], tf: true }] });
+}
+
+/* ---------- 拉線畫高：拖動垂足，直到和底垂直 ---------- */
+function pullHeight(r) {
+  return ctx => {
+    const [A, B] = r.base, d = [B[0] - A[0], B[1] - A[1]], L2 = d[0] * d[0] + d[1] * d[1];
+    const tStar = ((r.apex[0] - A[0]) * d[0] + (r.apex[1] - A[1]) * d[1]) / L2;
+    const at = t => [A[0] + d[0] * t, A[1] + d[1] * t];
+    let t = r.startT, t0, done = false, tries = 0;
+    const ang = () => { const F = at(t), v = [r.apex[0] - F[0], r.apex[1] - F[1]]; const c = Math.abs(v[0] * d[0] + v[1] * d[1]) / (Math.hypot(...v) * Math.sqrt(L2) || 1); return Math.round(Math.acos(Math.min(1, c)) * 180 / Math.PI); };
+    const lo = at(r.range[0]), hi = at(r.range[1]);
+    ctx.stage.innerHTML = fig(r.cols, r.rows, poly(r.shape, 'shape s-or') + seg(lo, hi, 'baseline') + seg(A, B, 'base') +
+      `<line id="pl" class="pull"/><g id="rm"></g><text id="ag" class="angle" text-anchor="middle"></text>` +
+      `<circle cx="${P(r.apex[0])}" cy="${P(r.apex[1])}" r="8" fill="var(--violet)"/>` +
+      `<g id="ft" class="drag"><circle r="26" fill="rgba(122,79,208,.18)"/><circle r="13" class="foot"/></g>`);
+    const svg = ctx.stage.querySelector('svg'), pl = svg.querySelector('#pl'), ft = svg.querySelector('#ft'), ag = svg.querySelector('#ag'), rm = svg.querySelector('#rm');
+    const upd = () => {
+      const F = at(t);
+      pl.setAttribute('x1', P(r.apex[0])); pl.setAttribute('y1', P(r.apex[1])); pl.setAttribute('x2', P(F[0])); pl.setAttribute('y2', P(F[1]));
+      ft.setAttribute('transform', `translate(${P(F[0])},${P(F[1])})`);
+      const a = ang(); ag.textContent = a + '°';
+      const off = r.labelOff || [0, .9];
+      ag.setAttribute('x', P(F[0] + off[0])); ag.setAttribute('y', P(F[1] + off[1]));
+      ag.style.fill = a >= 88 ? 'var(--green)' : 'var(--violet)';
+    };
+    upd();
+    const svgEl = svg;
+    dragify(svgEl, ft, () => t0 = t, () => {}, null);
+    // 以指標位置投影到底邊直線上（比用位移更穩）
+    ft.addEventListener('pointermove', e => {
+      if (done || !ft.classList.contains('grab')) return;
+      const p = svgPt(svgEl, e), q = [p.x / U - A[0], p.y / U - A[1]];
+      t = clamp((q[0] * d[0] + q[1] * d[1]) / L2, r.range[0], r.range[1]); upd();
+    });
+    ft.addEventListener('pointerup', () => {
+      if (done) return;
+      if (Math.abs(t - tStar) * Math.sqrt(L2) < .3) {
+        t = tStar; upd(); done = true; ft.classList.remove('drag'); pl.classList.add('ok'); ag.textContent = '90°';
+        rm.innerHTML = rmark(at(t), r.apex, A, B); sGood();
+        fb.className = 'fb good show'; fb.innerHTML = '✅ 垂直了！紫色頂點到這裡的線段就是<b>高</b>。' + (r.exp || '');
+        ctx.record(tries === 0); nextBtn(ctx);
+      } else {
+        tries++;
+        fb.className = 'fb info show'; fb.innerHTML = `現在是 <b>${ang()}°</b>，要變成 <b>90°</b>（直角）才是高喔！` + (tries >= 2 && r.tip ? '<br>' + r.tip : '');
+      }
+    });
+    ctx.panel.innerHTML = `<span class="qtag">畫高 ${r.no}</span><div class="prompt">${r.q}</div><div class="note">用手指拖動紫色圓點，沿著<span style="color:var(--blue)">底邊（和它的延長線）</span>滑動，讓角度變成 <b>90°</b>。</div>`;
+    const fb = mk('div', 'fb'); fb.style.marginTop = '12px'; ctx.panel.appendChild(fb);
+  };
+}
+
+/* ---------- 釘板：拖動橡皮筋的頂點 ---------- */
+const area2 = ps => Math.abs(ps.reduce((s, p, i) => { const q = ps[(i + 1) % ps.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0)); // 面積的 2 倍
+const cross = (a, b) => a[0] * b[1] - a[1] * b[0];
+const vec = (p, q) => [q[0] - p[0], q[1] - p[1]];
+function segX(p1, p2, p3, p4) { const d1 = cross(vec(p3, p4), vec(p3, p1)), d2 = cross(vec(p3, p4), vec(p3, p2)), d3 = cross(vec(p1, p2), vec(p1, p3)), d4 = cross(vec(p1, p2), vec(p1, p4)); return d1 * d2 < 0 && d3 * d4 < 0; }
+function quadInfo(ps) {
+  const [a, b, c, d] = ps;
+  const simple = !segX(a, b, c, d) && !segX(b, c, d, a);
+  const par1 = cross(vec(a, b), vec(d, c)) === 0, par2 = cross(vec(b, c), vec(a, d)) === 0;
+  const ab = vec(a, b), bc = vec(b, c), right = ab[0] * bc[0] + ab[1] * bc[1] === 0;
+  return { simple, pairs: (par1 ? 1 : 0) + (par2 ? 1 : 0), pg: par1 && par2, rect: par1 && par2 && right };
+}
+function geoTask(o) {
+  return ctx => {
+    const N = 6, ps = o.init.map(p => p.slice());
+    let tries = 0, done = false; const found = new Set();
+    let g = `<rect x="${-.5 * U}" y="${-.5 * U}" width="${(N + 1) * U}" height="${(N + 1) * U}" rx="18" class="board"/>`;
+    for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) g += `<circle cx="${P(i)}" cy="${P(j)}" r="6" class="peg"/>`;
+    g += `<polygon id="band" class="band"/>`;
+    ps.forEach((p, i) => g += (o.fixed || []).includes(i) ? `<g id="v${i}"><circle r="11" fill="#2f6fde" stroke="#fff" stroke-width="3"/></g>` : `<g id="v${i}" class="vh drag"><circle r="28" class="halo"/><circle r="12" class="ring"/></g>`);
+    ctx.stage.innerHTML = `<svg class="fig" viewBox="${-.9 * U} ${-.9 * U} ${(N + 1.8) * U} ${(N + 1.8) * U}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+    const svg = ctx.stage.querySelector('svg'), band = svg.querySelector('#band');
+    const upd = () => {
+      band.setAttribute('points', pts(ps));
+      ps.forEach((p, i) => svg.querySelector('#v' + i).setAttribute('transform', `translate(${P(p[0])},${P(p[1])})`));
+      if (live) live.innerHTML = `<span>面積</span><b>${area2(ps) / 2} 平方公分</b>`;
+    };
+    ps.forEach((p, i) => {
+      if ((o.fixed || []).includes(i)) return;
+      const el = svg.querySelector('#v' + i); let s;
+      dragify(svg, el, () => s = ps[i].slice(), dd => {
+        if (done) return;
+        const nx = clamp(Math.round(s[0] + dd[0]), 0, N), ny = clamp(Math.round(s[1] + dd[1]), 0, N);
+        if (nx !== ps[i][0] || ny !== ps[i][1]) { ps[i] = [nx, ny]; beep([300 + ny * 40], .03); upd(); }
+      }, () => { if (o.onDrop) o.onDrop(); });
+    });
+    ctx.panel.innerHTML = `<span class="qtag">釘板 ${o.no}</span><div class="prompt">${o.q}</div><div class="note" style="margin-bottom:10px">拖動<span style="color:#d63b1f">紅色圓圈</span>，把橡皮筋套到別的釘子上。每兩個釘子相距 1 公分。</div>`;
+    const live = o.live ? mk('div', 'read') : null; if (live) ctx.panel.appendChild(live);
+    const fb = mk('div', 'fb'); ctx.panel.appendChild(fb);
+    const ok = msg => { done = true; sGood(); confetti(30); fb.className = 'fb good show'; fb.innerHTML = '✅ ' + msg; svg.querySelectorAll('.vh').forEach(v => v.classList.remove('drag')); ctx.record(tries === 0); nextBtn(ctx); };
+    if (o.collect) {  // 收集：做出幾個不同但面積相同的形狀
+      const list = mk('div', 'note'); ctx.panel.appendChild(list);
+      o.onDrop = () => {
+        if (done) return;
+        const a = area2(ps) / 2, key = ps.map(p => p.join(',')).join('|');
+        if (a === o.collect.area && !found.has(key)) {
+          found.add(key); sSnap();
+          list.innerHTML = `找到了 ${found.size} / ${o.collect.n} 個：` + '🔺'.repeat(found.size);
+          if (found.size >= o.collect.n) ok(o.collect.msg);
+        }
+      };
+    } else {
+      const cb = mk('button', 'big', '✅ 檢查'); ctx.panel.appendChild(cb);
+      cb.onclick = () => {
+        if (done) return;
+        const res = o.check(ps, area2(ps) / 2);
+        if (res === true) { cb.remove(); ok(o.success); }
+        else { tries++; sBad(); fb.className = 'fb bad show'; fb.innerHTML = res; }
+      };
+    }
+    upd();
   };
 }
 
@@ -510,34 +684,65 @@ function dupLab(o) {
    工作台 1：剪一刀變長方形（平行四邊形）
    ===================================================== */
 function st1() {
-  const A = [1, 5], B = [7, 5], C = [9, 1], D = [3, 1], F = [3, 5];
-  const tri = [A, F, D], rest = [F, B, C, D];
+  const A = [1, 5], B = [7, 5], C = [9, 1], D = [3, 1];
+  // 例題1：長方形斜斜剪一刀，拼成平行四邊形或梯形
+  const rectCut = moveLab({
+    cols: 10, rows: 6, fixed: [[[3, 1], [7, 1], [7, 5], [1, 5]]], piece: [[1, 1], [3, 1], [1, 5]], cutLine: [[3, 1], [1, 5]], nudge: [-.3, 0], mode: 'flip',
+    targets: [{ name: '平行四邊形', T: [6, 0], tf: false }, { name: '梯形', T: [6, 0], tf: true }],
+    text: '這是一個<b>長方形</b>，上面畫了一條斜斜的線。<br>點一下 ✂️，<b>沿著線剪開</b>！',
+    text2: '把剪下的<span style="color:var(--teal-d)">綠色三角形</span>拖到右邊，拼拼看會變成什麼形狀？<br><small style="color:var(--dim)">提示：按「🔃 翻面」再拼，會變成另一種形狀喔！</small>',
+    more: '把三角形「翻面」再拼一次看看！',
+    wrongMsg: '這樣拼不起來，換個方向試試（按「🔃 翻面」）。',
+    success: '🎉 <b>平行四邊形</b>和<b>梯形</b>都拼出來了！<br>都是用同一個長方形剪拼的，格子沒有變多也沒有變少。',
+  });
+  const both = fig(20, 6, poly([[3, 1], [7, 1], [7, 5], [1, 5]], 'shape s-or') + poly([[7, 5], [9, 1], [7, 1]], 'shape s-teal') + txt(5, 5.6, '平行四邊形', 'lbl') +
+    poly([[13, 1], [17, 1], [17, 5], [11, 5]], 'shape s-or') + poly([[17, 5], [19, 5], [17, 1]], 'shape s-teal') + txt(15, 5.6, '梯形', 'lbl'));
+  // 例題2、3：自己選位置剪高，再拼成長方形
   const cutMove = ctx => {
-    let cut = false, dx = 0, dx0 = 0, done = false;
+    let c = 5, cut = false, dx = 0, dx0, c0, done = false; const tried = new Set();
+    const L = () => [A, [c, 5], [c, 1], D], Rr = () => [[c, 5], B, C, [c, 1]];
     const draw = () => {
-      ctx.stage.innerHTML = fig(11, 6,
-        `${poly(rest, 'shape s-or')}<g id="pc" class="${cut ? 'drag' : ''}" transform="translate(${P(dx)},0)">${poly(tri, 'shape ' + (cut ? 's-teal' : 's-or'))}</g>` +
-        (cut ? '' : `<g class="scis" id="sc">${seg(D, F, 'hgt')}${seg(D, F, 'hit')}<text x="${P(3)}" y="${P(.45)}" font-size="34" text-anchor="middle">✂️</text></g>`) +
-        (done ? txt(6, 5.6, '長 6 公分', 'lbl lb') + txt(9.25, 3, '寬 4 公分', 'lbl lh', 'start') : ''));
+      let g = poly(Rr(), 'shape s-or', 'id="pR"') + `<g id="pc" class="${cut && !done ? 'drag' : ''}" transform="translate(${P(dx)},0)">${poly(L(), 'shape ' + (cut ? 's-teal' : 's-or'), 'id="pL"')}</g>`;
+      if (!cut) g += `<g id="cl" class="drag">${seg([c, 1], [c, 5], 'hgt')}${seg([c, 1], [c, 5], 'hit')}${rmark([c, 5], [c, 1], A, B)}<circle cx="${P(c)}" cy="${P(5.8)}" r="26" fill="rgba(228,87,46,.16)"/><circle cx="${P(c)}" cy="${P(5.8)}" r="13" fill="var(--red)" stroke="#fff" stroke-width="3"/>${txt(c + .2, 3, '4 公分', 'lbl lh', 'start')}</g>`;
+      if (done) g += txt(c + 3, 5.6, '長 6 公分', 'lbl lb') + txt(c + 6.25, 3, '寬 4 公分', 'lbl lh', 'start');
+      ctx.stage.innerHTML = fig(14, 6, g);
       const svg = ctx.stage.querySelector('svg');
-      if (!cut) svg.querySelector('#sc').onclick = () => { cut = true; dx = -.25; sSnap(); draw(); step2(); };
-      else if (!done) {
+      if (!cut) {
+        const cl = svg.querySelector('#cl'), cDraw = c;
+        dragify(svg, cl, () => c0 = c, d => {
+          const nc = Math.round(clamp(c0 + d[0], 3, 7));
+          if (nc !== c) { c = nc; cl.setAttribute('transform', `translate(${P(c - cDraw)},0)`); svg.querySelector('#pL').setAttribute('points', pts(L())); svg.querySelector('#pR').setAttribute('points', pts(Rr())); beep([400], .03); }
+        });
+      } else if (!done) {
         const pc = svg.querySelector('#pc');
         dragify(svg, pc, () => dx0 = dx, d => { dx = clamp(dx0 + d[0], -.4, 6.6); pc.setAttribute('transform', `translate(${P(dx)},0)`); },
-          () => { if (Math.abs(dx - 6) < .7) { dx = 6; done = true; sSnap(); confetti(30); draw(); fin(); } });
+          () => { if (Math.abs(dx - 6) < .7) { dx = 6; done = true; tried.add(c); sSnap(); confetti(30); draw(); fin(); } });
       }
     };
-    ctx.panel.innerHTML = `<span class="qtag">動手做 ①</span><div class="prompt">這是一個<span class="o">平行四邊形</span>。<br>點一下紅色虛線上的 ✂️，<b>沿著虛線剪一刀</b>！</div><div class="note">紅色虛線和底邊互相垂直。</div>`;
-    const step2 = () => { ctx.panel.innerHTML = `<span class="qtag">動手做 ②</span><div class="prompt">剪下來的<span style="color:var(--teal-d)">綠色三角形</span>，<br>用手指<b>拖到右邊</b>，拼拼看會變成什麼形狀？</div>`; };
-    const fin = () => { ctx.panel.innerHTML = `<span class="qtag">動手做 ②</span><div class="fb good show">🎉 變成<b>長方形</b>了！格子沒有變多也沒有變少，所以面積和原來的平行四邊形<b>一樣大</b>。</div>`; nextBtn(ctx, '繼續 →'); };
-    draw();
+    const step1 = () => {
+      ctx.panel.innerHTML = `<span class="qtag">動手做 ①</span><div class="prompt">這是一個<span class="o">平行四邊形</span>。<br>左右拖動<span class="r">紅色虛線</span>，選一個你想剪的位置。</div><div class="note">紅線和底邊互相垂直。拖到不同位置量量看，紅線都一樣長嗎？</div>`;
+      const b = mk('button', 'big', '✂️ 就剪這裡！'); b.onclick = () => { cut = true; dx = -.3; sSnap(); draw(); step2(); }; ctx.panel.appendChild(b);
+    };
+    const step2 = () => { ctx.panel.innerHTML = `<span class="qtag">動手做 ②</span><div class="prompt">剪下來的<span style="color:var(--teal-d)">綠色那塊</span>，<br>用手指<b>拖到右邊</b>，拼拼看會變成什麼形狀？</div>`; };
+    const fin = () => {
+      ctx.panel.innerHTML = `<span class="qtag">動手做 ②</span><div class="fb good show">🎉 變成<b>長方形</b>了！格子沒有變多也沒有變少，所以面積和原來的平行四邊形<b>一樣大</b>。` +
+        (tried.size >= 2 ? `<br>你試了 ${tried.size} 個位置，<b>沿著高剪開，在哪裡剪都能拼成長方形</b>！` : '<br>換個位置再剪一次，還會是長方形嗎？') + '</div>';
+      const row = mk('div', 'row');
+      const again = mk('button', 'big alt', '🔁 換個位置再剪'); again.onclick = () => { cut = false; done = false; dx = 0; c = pick([3, 4, 5, 6, 7].filter(x => !tried.has(x))) || 5; draw(); step1(); };
+      const nx = mk('button', 'big', '繼續 →'); nx.onclick = () => ctx.next();
+      row.append(again, nx); ctx.panel.appendChild(row);
+    };
+    draw(); step1();
   };
-  const rectFig = (labels) => fig(11, 6, poly(rest, 'shape s-or') + `<g transform="translate(${P(6)},0)">${poly(tri, 'shape s-teal')}</g>` + poly([A, B, C, D], 'shape s-ghost') + (labels || ''));
-  const pgLabeled = fig(11, 6, poly([A, B, C, D], 'shape s-or') + heightMark(D, F, A, B, '高') + txt(4, 5.6, '底', 'lbl lb'));
+  const rect = [[3, 1], [9, 1], [9, 5], [3, 5]];
+  const rectFig = (labels) => fig(11, 6, poly([[3, 5], [7, 5], [9, 1], [3, 1]], 'shape s-or') + poly([[7, 5], [9, 5], [9, 1]], 'shape s-teal') + poly([A, B, C, D], 'shape s-ghost') + (labels || ''));
+  const pgLabeled = fig(11, 6, poly([A, B, C, D], 'shape s-or') + heightMark(D, [3, 5], A, B, '高') + txt(4, 5.6, '底', 'lbl lb'));
   return [
+    rectCut,
+    choiceQ({ tag: '想想看', q: '拼出來的平行四邊形、梯形，和原來的長方形比，面積怎麼樣？', fig: both, opts: ['一樣大', '平行四邊形比較大', '梯形比較大', '長方形比較大'], a: '一樣大', hint: '剪開再拼，格子有變多或變少嗎？', exp: '形狀不一樣，但面積<b>一樣大</b>（都是 24 格）。' }),
     cutMove,
     numQ({ tag: '數一數', q: '拼好的長方形有幾格？<br><small style="color:var(--dim)">（1 格是 1 平方公分）</small>', fig: rectFig(), a: 24, unit: '平方公分', hint: '一排有幾格？有幾排？', exp: '一排 6 格，有 4 排：6 × 4 ＝ 24' }),
-    choiceQ({ tag: '想想看', q: '長方形的<span class="k">長</span>，就是原來平行四邊形的哪裡？', fig: rectFig(txt(6, 5.6, '長', 'lbl lb')) , opts: ['底', '高', '斜邊'], a: '底', hint: '看看虛線的原來形狀，長方形的長和哪一條邊一樣長？', exp: '長方形的長 ＝ 平行四邊形的<b>底</b>' }),
+    choiceQ({ tag: '想想看', q: '長方形的<span class="k">長</span>，就是原來平行四邊形的哪裡？', fig: rectFig(txt(6, 5.6, '長', 'lbl lb')), opts: ['底', '高', '斜邊'], a: '底', hint: '看看虛線的原來形狀，長方形的長和哪一條邊一樣長？', exp: '長方形的長 ＝ 平行四邊形的<b>底</b>' }),
     choiceQ({ tag: '想想看', q: '長方形的<span class="r">寬</span>，就是原來平行四邊形的哪裡？', fig: rectFig(txt(9.25, 3, '寬', 'lbl lh', 'start')), opts: ['底', '高', '斜邊'], a: '高', hint: '我們是沿著哪一條線剪開的？', exp: '長方形的寬 ＝ 平行四邊形的<b>高</b>（就是剪開的那條紅線）' }),
     infoStep({ fig: pgLabeled, title: '長方形面積 ＝ 長 × 寬，所以……', formula: '平行四邊形面積 ＝ <b>底</b> × <i>高</i>', note: '⚠️ 高要和底<b>互相垂直</b>，斜斜的邊不是高喔！' }),
     numQ(genPG('in')), numQ(genPG('slant')), numQ(genPG('out')), numQ(genPG('in')),
@@ -592,14 +797,22 @@ function st2() {
       opts: [{ a: [5, 1], b: [5, 5] }, { a: [3, 1], b: [1, 5], t: .4 }, { a: [9, 1], b: [4, 5], t: .6 }], exp: '高和底垂直，從對邊直直地連到底邊。' }),
     heightRound({ no: 2, cols: 10, rows: 6, q: Q, shape: [[1, 5], [4, 5], [8, 1], [5, 1]], base: [[1, 5], [4, 5]], extFrom: [4, 5], extTo: [8, 5],
       opts: [{ a: [8, 1], b: [8, 5] }, { a: [5, 1], b: [1, 5], t: .35 }, { a: [6, 1], b: [3, 5], t: .65 }], exp: '這個平行四邊形的高畫不進去，要把底邊<b>延長</b>，在外面畫高。' }),
-    heightRound({ no: 3, cols: 10, rows: 6, q: Q + '<br><small style="color:var(--dim)">這次的底是斜的喔！</small>', shape: [[1, 5], [7, 5], [9, 1], [3, 1]], base: [[1, 5], [3, 1]],
-      opts: [{ a: [7, 5], b: [2.2, 2.6] }, { a: [7, 1], b: [7, 5], t: .5 }, { a: [9, 1], b: [2, 3], t: .3 }], exp: '底換了，高也跟著換！高要和這條斜的底垂直。' }),
-    heightRound({ no: 4, cols: 9, rows: 6, q: Q, shape: [[1, 5], [4, 5], [7, 1]], base: [[1, 5], [4, 5]], extFrom: [4, 5], extTo: [7, 5],
+    heightRound({ no: 3, cols: 9, rows: 6, q: Q, shape: [[1, 5], [4, 5], [7, 1]], base: [[1, 5], [4, 5]], extFrom: [4, 5], extTo: [7, 5],
       opts: [{ a: [7, 1], b: [7, 5] }, { a: [7, 1], b: [4, 5], t: .55 }, { a: [7, 1], b: [2.5, 5], t: .7 }], exp: '鈍角三角形的高可能在外面，要延長底邊，從頂點畫垂直線。' }),
-    heightRound({ no: 5, cols: 8, rows: 6, q: Q, shape: [[1, 5], [6, 5], [1, 1]], base: [[1, 5], [6, 5]],
+    heightRound({ no: 4, cols: 8, rows: 6, q: Q, shape: [[1, 5], [6, 5], [1, 1]], base: [[1, 5], [6, 5]],
       opts: [{ a: [1, 1], b: [1, 5] }, { a: [1, 1], b: [3.5, 5], t: .6 }, { a: [1, 1], b: [6, 5], t: .7 }], exp: '直角三角形的另一條直角邊，剛好就是高！' }),
-    heightRound({ no: 6, cols: 10, rows: 6, q: '<span class="k">藍色的邊</span>是梯形的下底，哪一條虛線是梯形的<span class="r">高</span>？', shape: [[1, 5], [8, 5], [6, 1], [3, 1]], base: [[1, 5], [8, 5]],
+    heightRound({ no: 5, cols: 10, rows: 6, q: '<span class="k">藍色的邊</span>是梯形的下底，哪一條虛線是梯形的<span class="r">高</span>？', shape: [[1, 5], [8, 5], [6, 1], [3, 1]], base: [[1, 5], [8, 5]],
       opts: [{ a: [4, 1], b: [4, 5] }, { a: [3, 1], b: [1, 5], t: .45 }, { a: [6, 1], b: [3, 5], t: .6 }], exp: '梯形的上底和下底之間的距離，就是梯形的高。' }),
+    infoStep({ tag: '換你畫', fig: fig(10, 6, poly([[1, 5], [7, 5], [9, 1], [3, 1]], 'shape s-or') + seg([1, 5], [7, 5], 'base') + heightMark([9, 1], [9, 5], [1, 5], [7, 5], '高')),
+      title: '用三角板的直角來畫高', formula: '先找<b>底</b>，再畫一條和底<i>垂直</i>的線', note: '接下來換你動手：拖動紫色圓點，讓線和底邊變成 90°（直角）。<br>如果底邊不夠長，可以滑到<b>延長線</b>上！' }),
+    pullHeight({ no: 1, cols: 10, rows: 6, shape: [[1, 5], [7, 5], [9, 1], [3, 1]], base: [[1, 5], [7, 5]], apex: [9, 1], range: [-.15, 1.45], startT: .3,
+      q: '從平行四邊形的頂點<span style="color:var(--violet)">●</span>，畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>。', tip: '高要直直地往下，和底邊形成直角。這次垂足在底邊的延長線上。', exp: '這次高畫在圖形外面，要用到底邊的延長線。' }),
+    pullHeight({ no: 2, cols: 10, rows: 6, shape: [[1, 5], [4, 5], [7, 1]], base: [[1, 5], [4, 5]], apex: [7, 1], range: [-.2, 2.6], startT: .5,
+      q: '鈍角三角形！從頂點<span style="color:var(--violet)">●</span>畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>。', tip: '底邊不夠長，要滑到右邊的延長線上。', exp: '鈍角三角形的高可能在外面，要延長底邊。' }),
+    pullHeight({ no: 3, cols: 10, rows: 6, shape: [[1, 5], [7, 5], [9, 1], [3, 1]], base: [[1, 5], [3, 1]], apex: [7, 5], range: [-.35, 1.35], startT: 1.1, labelOff: [-1.1, 0],
+      q: '這次的<span class="k">底是斜的</span>！從頂點<span style="color:var(--violet)">●</span>畫出它的<span class="r">高</span>。', tip: '可以把平板轉一轉，讓藍色底邊變成在下面，比較好看出直角。', exp: '底換了，高也跟著換！' }),
+    pullHeight({ no: 4, cols: 9, rows: 6, shape: [[1, 5], [7, 5], [4, 1]], base: [[7, 5], [4, 1]], apex: [1, 5], range: [-.3, 1.3], startT: .2, labelOff: [1, -.2],
+      q: '三角形的<span class="k">斜斜的底邊</span>，它的<span class="r">高</span>在哪裡？從頂點<span style="color:var(--violet)">●</span>畫畫看。', tip: '想像三角板的直角對齊藍色的邊。', exp: '任何一條邊都可以當底，每個底都有自己的高。' }),
   ];
 }
 
@@ -614,6 +827,10 @@ function st3() {
       text: '影印機複製了一個一模一樣的<span style="color:var(--teal-d)">綠色三角形</span>。<br>按「🔄 轉 180°」，再把它<b>拖過去</b>，和橘色三角形拼成一個<span class="o">平行四邊形</span>！',
       success: '🎉 兩個一樣的三角形，拼成了一個<b>平行四邊形</b>！',
       afterSVG: heightMark([2, 1], [2, 5], [0, 5], [6, 5], '4 公分') + txt(3, 5.6, '6 公分', 'lbl lb') }),
+    dupLab({ P: [[0, 5], [5, 5], [0, 1]], M: [2.5, 3], cols: 13, rows: 6, startT: [7, 0],
+      text: '換<b>直角三角形</b>試試看！把複製的綠色直角三角形轉 180°，再拖過去拼拼看，會變成什麼形狀？',
+      success: '🎉 兩個一樣的直角三角形，拼成了<b>長方形</b>！<br>所以直角三角形的面積是長方形的<b>一半</b>：5 × 4 ÷ 2 ＝ 10（平方公分）',
+      afterSVG: txt(2.5, 5.6, '5 公分', 'lbl lb') + txt(-.25, 3, '4 公分', 'lbl lh', 'end') }),
     numQ({ tag: '算算看', q: '拼成的<span class="o">平行四邊形</span>面積是多少平方公分？', fig: pgFig, a: 24, unit: '平方公分', hint: HINT_PG, exp: '6 × 4 ＝ 24（平方公分）' }),
     numQ({ tag: '算算看', q: '那<span class="o">一個三角形</span>的面積是多少平方公分？', fig: pgFig, a: 12, unit: '平方公分', hint: '平行四邊形是由兩個一樣的三角形拼成的。', exp: '24 ÷ 2 ＝ 12（平方公分），是平行四邊形的一半' }),
     choiceQ({ tag: '找公式', q: '三角形的底、高，和平行四邊形的底、高一樣。三角形面積怎麼算？', fig: pgFig, opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 高 × 2', '(底 ＋ 高) ÷ 2']), a: '底 × 高 ÷ 2', hint: '三角形是平行四邊形的「一半」。', exp: '' }),
@@ -725,24 +942,62 @@ function st5() {
 }
 
 /* =====================================================
+   工作台：釘板實驗室（釘板＋橡皮筋）
+   ===================================================== */
+function stGeo() {
+  return [
+    geoTask({ no: 1, q: '藍色的底固定是 <b>4 公分</b>。拖動紅色頂點，做出 <b>3 個不一樣</b>、但面積都是 <span class="o">8 平方公分</span>的三角形！', live: true,
+      init: [[1, 5], [5, 5], [2, 3]], fixed: [0, 1], collect: { area: 8, n: 3, msg: '3 個三角形的頂點都在同一排釘子上——<b>底一樣、高一樣（都是 4）</b>，所以面積都一樣！' } }),
+    geoTask({ no: 2, q: '用橡皮筋圍出一個面積 <span class="o">6 平方公分</span>的<b>三角形</b>。',
+      init: [[1, 5], [3, 5], [2, 4]], success: '圍出面積 6 平方公分的三角形了！想一想：底 × 高 ÷ 2 ＝ 6，底和高可以是多少？',
+      check: (ps, a) => a === 0 ? '三個點排成一直線了，這樣圍不出三角形喔！' : a === 6 ? true : `現在的面積是 <b>${a}</b> 平方公分。想一想：底 × 高 要等於 12。` }),
+    geoTask({ no: 3, q: '圍出一個面積 <span class="o">8 平方公分</span>的<b>平行四邊形</b>，但<b>不可以是長方形</b>！',
+      init: [[1, 2], [3, 2], [3, 4], [1, 4]], success: '這是面積 8 平方公分的平行四邊形！底 × 高 ＝ 8。',
+      check: (ps, a) => { const q = quadInfo(ps); if (!q.simple) return '橡皮筋交叉了！把頂點換個位置。'; if (!q.pg) return '這還不是平行四邊形喔——兩組對邊都要互相平行。'; if (q.rect) return '這是長方形（或正方形），把上面那條邊往旁邊推斜試試！'; return a === 8 ? true : `是平行四邊形了！但面積是 <b>${a}</b> 平方公分，要 8 喔。（底 × 高 ＝ 8）`; } }),
+    geoTask({ no: 4, q: '圍出一個面積 <span class="o">6 平方公分</span>的<b>梯形</b>。',
+      init: [[1, 2], [3, 2], [3, 4], [1, 4]], success: '這是面積 6 平方公分的梯形！(上底 ＋ 下底) × 高 ÷ 2 ＝ 6。',
+      check: (ps, a) => { const q = quadInfo(ps); if (!q.simple) return '橡皮筋交叉了！把頂點換個位置。'; if (q.pairs !== 1) return q.pairs === 2 ? '兩組對邊都平行，這是平行四邊形（或長方形），不是梯形喔！' : '梯形要有一組對邊互相平行。'; return a === 6 ? true : `是梯形了！但面積是 <b>${a}</b> 平方公分，要 6 喔。（上底＋下底）× 高 要等於 12。`; } }),
+  ];
+}
+
+/* =====================================================
    工作台 6：複合圖形
    ===================================================== */
 function st6() {
-  const house = { w: 6, r: 3, t: 2 };
+  const pc = (x, y, t) => txt(x, y, t, 'lbl pc');
   const hs = (() => {
     const A = [1, 6], B = [7, 6], C = [7, 3], T = [4, 1], D = [1, 3];
-    const g = poly([A, B, C, T, D], 'shape s-or') + heightMark(T, [4, 3], D, C, '2 公分') + txt(4, 6.6, '6 公分', 'lbl lb') + txt(7.25, 4.5, '3 公分', 'lbl', 'start');
-    return { fig: fig(10, 7, g), hintFig: fig(10, 7, g + seg(D, C, 'cut')) };
+    const dims = heightMark(T, [4, 3], D, C, '2 公分') + txt(4, 6.6, '6 公分', 'lbl lb') + txt(7.25, 4.5, '3 公分', 'lbl', 'start');
+    return {
+      fig: fig(10, 7, poly([A, B, C, T, D], 'shape s-or') + dims),
+      methods: [
+        { name: '長方形＋三角形', fig: fig(10, 7, poly([D, C, B, A], 'shape s-p1') + poly([D, C, T], 'shape s-p2') + dims + pc(4, 4.6, '6×3＝18') + pc(5.2, 2.55, '6×2÷2＝6')), note: '下面的長方形 6 × 3 ＝ 18，上面的三角形 6 × 2 ÷ 2 ＝ 6，再加起來。' },
+        { name: '兩個梯形', fig: fig(10, 7, poly([A, [4, 6], T, D], 'shape s-p1') + poly([[4, 6], B, C, T], 'shape s-p3') + seg(T, [4, 6], 'cut') + txt(7.25, 4.5, '3 公分', 'lbl', 'start') + txt(2.5, 6.6, '3', 'lbl lb') + txt(5.5, 6.6, '3', 'lbl lb') + txt(4.15, 3.6, '5', 'lbl lh', 'start') + pc(2.4, 4.8, '甲') + pc(5.6, 4.8, '乙')), note: '從屋頂直直切下去，變成兩個一樣的梯形：上底 3、下底 5、高 3。<br>(3 ＋ 5) × 3 ÷ 2 ＝ 12，兩個就是 12 × 2。' },
+      ],
+    };
   })();
   const L = (() => {
     const p = [[1, 1], [5, 1], [5, 4], [8, 4], [8, 6], [1, 6]];
-    const g = poly(p, 'shape s-or') + txt(3, .5, '4 公分', 'lbl') + txt(5.2, 2.5, '3', 'lbl', 'start') + txt(6.5, 3.55, '3', 'lbl') + txt(8.25, 5, '2 公分', 'lbl', 'start') + txt(4.5, 6.6, '7 公分', 'lbl lb') + txt(.75, 3.5, '5 公分', 'lbl', 'end');
-    return { fig: fig(10, 7, g), hintFig: fig(10, 7, g + seg([1, 4], [5, 4], 'cut')) };
+    const dims = txt(3, .5, '4 公分', 'lbl') + txt(5.2, 2.5, '3', 'lbl', 'start') + txt(6.5, 3.55, '3', 'lbl') + txt(8.25, 5, '2 公分', 'lbl', 'start') + txt(4.5, 6.6, '7 公分', 'lbl lb') + txt(.75, 3.5, '5 公分', 'lbl', 'end');
+    return {
+      fig: fig(10, 7, poly(p, 'shape s-or') + dims),
+      methods: [
+        { name: '橫著切', fig: fig(10, 7, poly([[1, 1], [5, 1], [5, 4], [1, 4]], 'shape s-p1') + poly([[1, 4], [8, 4], [8, 6], [1, 6]], 'shape s-p2') + dims + pc(3, 2.5, '4×3＝12') + pc(4.5, 5, '7×2＝14')), note: '上面 4 × 3 ＝ 12，下面 7 × 2 ＝ 14，再加起來。' },
+        { name: '直著切', fig: fig(10, 7, poly([[1, 1], [5, 1], [5, 6], [1, 6]], 'shape s-p1') + poly([[5, 4], [8, 4], [8, 6], [5, 6]], 'shape s-p2') + dims + pc(3, 3.5, '4×5＝20') + pc(6.5, 5, '3×2＝6')), note: '左邊 4 × 5 ＝ 20，右邊 3 × 2 ＝ 6，再加起來。' },
+        { name: '補成大長方形', fig: fig(10, 7, poly(p, 'shape s-p1') + poly([[5, 1], [8, 1], [8, 4], [5, 4]], 'shape s-hole') + txt(4.5, .5, '7 公分', 'lbl') + txt(8.25, 3.5, '5 公分', 'lbl', 'start') + txt(4.5, 6.6, '7 公分', 'lbl lb') + txt(.75, 3.5, '5 公分', 'lbl', 'end') + pc(3, 3.4, '大長方形') + pc(3, 4.2, '7×5＝35') + pc(6.5, 2.1, '扣掉') + pc(6.5, 2.9, '3×3＝9')), note: '先補成 7 × 5 的大長方形 ＝ 35，再扣掉補上去的 3 × 3 ＝ 9。' },
+      ],
+    };
   })();
   const notch = (() => {
     const p = [[1, 1], [3, 1], [5, 4], [7, 1], [9, 1], [9, 6], [1, 6]];
-    const g = poly(p, 'shape s-or') + txt(5, 6.6, '8 公分', 'lbl lb') + txt(.75, 3.5, '5 公分', 'lbl', 'end') + txt(5, .5, '4 公分', 'lbl') + seg([3, 1], [7, 1], 'ext') + seg([5, 1], [5, 4], 'hgt') + txt(5.2, 2.2, '3', 'lbl lh', 'start');
-    return { fig: fig(10, 7, g), hintFig: fig(10, 7, g + poly([[3, 1], [7, 1], [5, 4]], 'shape s-ghost')) };
+    const dims = txt(5, 6.6, '8 公分', 'lbl lb') + txt(.75, 3.5, '5 公分', 'lbl', 'end') + txt(5, .5, '4 公分', 'lbl') + seg([5, 1], [5, 4], 'hgt') + txt(5.2, 2.2, '3', 'lbl lh', 'start');
+    return {
+      fig: fig(10, 7, poly(p, 'shape s-or') + seg([3, 1], [7, 1], 'ext') + dims),
+      methods: [
+        { name: '補成長方形再扣掉', fig: fig(10, 7, poly(p, 'shape s-p1') + poly([[3, 1], [7, 1], [5, 4]], 'shape s-hole') + dims + pc(3, 3.6, '整張') + pc(3, 4.4, '8×5＝40') + pc(6.3, 1.9, '4×3÷2')), note: '整張長方形 8 × 5 ＝ 40，再扣掉三角形缺口 4 × 3 ÷ 2 ＝ 6。' },
+        { name: '從中間切開', fig: fig(10, 7, poly([[1, 1], [3, 1], [5, 4], [5, 6], [1, 6]], 'shape s-p1') + poly([[5, 4], [7, 1], [9, 1], [9, 6], [5, 6]], 'shape s-p2') + seg([5, 4], [5, 6], 'cut') + dims.replace(seg([5, 1], [5, 4], 'hgt'), '') + pc(2.8, 4.3, '甲') + pc(7.2, 4.3, '乙')), note: '從缺口尖端往下切，左右兩塊一樣大。每塊可以再切成「梯形」＋「長方形」……這個方法比較麻煩，<b>扣除法</b>比較快！' },
+      ],
+    };
   })();
   // 梯形土地與平行四邊形道路（單位：公尺）
   const roadBase = (moved) => {
@@ -766,9 +1021,9 @@ function st6() {
     };
   };
   return [
-    numQ({ tag: '複合圖形 1', q: '這個像房子的圖形，面積是多少平方公分？', fig: hs.fig, hintFig: hs.hintFig, a: 24, unit: '平方公分', hint: '切成「長方形」和「三角形」，再加起來。', exp: '6 × 3 ＋ 6 × 2 ÷ 2 ＝ 18 ＋ 6 ＝ 24（平方公分）' }),
-    numQ({ tag: '複合圖形 2', q: '這個 L 形的面積是多少平方公分？（單位：公分）', fig: L.fig, hintFig: L.hintFig, a: 26, unit: '平方公分', hint: '切成兩個長方形；或用大長方形 7 × 5 扣掉缺角。', exp: '4 × 3 ＋ 7 × 2 ＝ 26，或 7 × 5 − 3 × 3 ＝ 26（平方公分）' }),
-    numQ({ tag: '複合圖形 3', q: '長方形紙板被剪掉一個三角形缺口，剩下的面積是多少平方公分？', fig: notch.fig, hintFig: notch.hintFig, a: 34, unit: '平方公分', hint: '先算整個長方形，再<b>扣掉</b>三角形缺口（底 4、高 3）。', exp: '8 × 5 − 4 × 3 ÷ 2 ＝ 40 − 6 ＝ 34（平方公分）' }),
+    numQ({ tag: '複合圖形 1', q: '這個像房子的圖形，面積是多少平方公分？', fig: hs.fig, methods: hs.methods, a: 24, unit: '平方公分', hint: '切成「長方形」和「三角形」，再加起來。', exp: '6 × 3 ＋ 6 × 2 ÷ 2 ＝ 18 ＋ 6 ＝ 24（平方公分）' }),
+    numQ({ tag: '複合圖形 2', q: '這個 L 形的面積是多少平方公分？（單位：公分）', fig: L.fig, methods: L.methods, a: 26, unit: '平方公分', hint: '切成兩個長方形；或用大長方形 7 × 5 扣掉缺角。', exp: '4 × 3 ＋ 7 × 2 ＝ 26，或 7 × 5 − 3 × 3 ＝ 26（平方公分）' }),
+    numQ({ tag: '複合圖形 3', q: '長方形紙板被剪掉一個三角形缺口，剩下的面積是多少平方公分？', fig: notch.fig, methods: notch.methods, a: 34, unit: '平方公分', hint: '先算整個長方形，再<b>扣掉</b>三角形缺口（底 4、高 3）。', exp: '8 × 5 − 4 × 3 ÷ 2 ＝ 40 − 6 ＝ 34（平方公分）' }),
     numQ({ tag: '道路問題', q: '梯形土地中間開了一條<b>平行四邊形的道路</b>（寬 2 公尺）。道路的面積是多少平方公尺？', fig: roadBase(false), a: 12, unit: '平方公尺', hint: '道路是平行四邊形：底 2 公尺，高和梯形一樣。', exp: '2 × 6 ＝ 12（平方公尺）' }),
     moveRoad,
     numQ({ tag: '道路問題', q: '扣掉道路後，剩下的土地面積是多少平方公尺？', fig: roadBase(true), a: 48, unit: '平方公尺', hint: '新梯形：上底 6、下底 10、高 6。', exp: '(6 ＋ 10) × 6 ÷ 2 ＝ 48（平方公尺）；也可以 (8＋12)×6÷2 − 12 ＝ 48' }),
@@ -807,17 +1062,18 @@ const fmtT = ms => { const s = Math.round(ms / 1000); return Math.floor(s / 60) 
 
 /* ---------- 工作台清單 ---------- */
 const STATIONS = [
-  { name: '剪一刀變長方形', sub: '8-1 平行四邊形的面積', ic: '✂️', make: st1 },
-  { name: '高在哪裡？', sub: '畫出底和高', ic: '📐', make: st2 },
-  { name: '三角形複製機', sub: '8-2 三角形的面積', ic: '🔺', make: st3 },
-  { name: '梯形複製機', sub: '8-3 梯形的面積', ic: '🪜', make: st4 },
-  { name: '等底等高實驗室', sub: '形狀變了，面積變了嗎？', ic: '🔬', make: st5 },
-  { name: '複合圖形工地', sub: '切開、扣掉、平移', ic: '🏗️', make: st6 },
-  { name: '面積大考驗', sub: '10 題總複習・計時挑戰', ic: '🏆', make: st7, boss: true },
+  { id: 'pg', name: '剪一刀變長方形', sub: '8-1 平行四邊形的面積', ic: '✂️', make: st1 },
+  { id: 'h', name: '高在哪裡？', sub: '找出高、拉線畫高', ic: '📐', make: st2 },
+  { id: 'tri', name: '三角形複製機', sub: '8-2 三角形的面積', ic: '🔺', make: st3 },
+  { id: 'trap', name: '梯形複製機', sub: '8-3 梯形的面積', ic: '🪜', make: st4 },
+  { id: 'same', name: '等底等高實驗室', sub: '形狀變了，面積變了嗎？', ic: '🔬', make: st5 },
+  { id: 'geo', name: '釘板實驗室', sub: '拉橡皮筋圍出指定面積', ic: '📌', make: stGeo },
+  { id: 'mix', name: '複合圖形工地', sub: '切開、補上、扣掉、平移', ic: '🏗️', make: st6 },
+  { id: 'boss', name: '面積大考驗', sub: '10 題總複習・計時挑戰', ic: '🏆', make: st7, boss: true },
 ];
 
 /* ---------- 進度 ---------- */
-const KEY = 'area-lab-v1';
+const KEY = 'area-lab-v2';
 let save = {}; try { save = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
 const persist = () => localStorage.setItem(KEY, JSON.stringify(save));
 
@@ -825,7 +1081,7 @@ function renderHome() {
   const map = $('#map'); map.innerHTML = '';
   let tot = 0;
   STATIONS.forEach((s, i) => {
-    const st = save['s' + i] || 0; tot += st;
+    const st = save[s.id] || 0; tot += st;
     const b = mk('button', 'st' + (s.boss ? ' boss' : ''), `<span class="no">${s.boss ? 'BOSS' : '工作台 ' + (i + 1)}</span><div class="ic">${s.ic}</div><h3>${s.name}</h3><p>${s.sub}</p><div class="s3">${'<b>★</b>'.repeat(st)}${'★'.repeat(3 - st)}</div>`);
     b.onclick = () => startStation(i);
     map.appendChild(b);
@@ -856,9 +1112,9 @@ function step() {
 }
 function finish() {
   if (run.timer) clearInterval(run.timer);
+  const st0 = STATIONS[run.i], st = st0;
   const r = run.q ? run.ok / run.q : 1, stars = r >= .9 ? 3 : r >= .6 ? 2 : 1;
-  const key = 's' + run.i; if (stars > (save[key] || 0)) { save[key] = stars; persist(); }
-  const st = STATIONS[run.i];
+  const key = st0.id; if (stars > (save[key] || 0)) { save[key] = stars; persist(); }
   $('#stage').innerHTML = `<div class="result"><div style="font-size:110px">${st.ic}</div></div>`;
   let cert = '';
   if (run.final) cert = `<div class="cert">座號 <b>${run.seat}</b> 號<br>答對 <b>${run.ok}</b> / ${run.q} 題　用時 <b>${fmtT(Date.now() - run.t0)}</b><br><small style="color:var(--dim)">${new Date().toLocaleString('zh-TW')}</small></div>`;
