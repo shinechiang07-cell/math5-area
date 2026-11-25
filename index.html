@@ -174,6 +174,17 @@ input[type=range]::-moz-range-thumb{width:34px;height:34px;border-radius:50%;bac
 .methods{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .methods .tool{flex:1;min-width:120px;font-size:17px}
 
+.goalbar{background:var(--card);border:2.5px solid var(--ink);border-radius:14px;padding:8px 14px;margin-bottom:12px;font-weight:700}
+.goalbar summary{cursor:pointer;font-size:17px;font-weight:900}
+.goalbar summary small{color:var(--dim);font-weight:700}
+.goalbar ul{margin:8px 0 2px;padding-left:20px;line-height:1.7;color:var(--dim)}
+.goalbar b,.goals b{color:var(--or-d)}
+.goals{margin-top:28px}
+.goals h2{font-size:24px;margin:0 0 12px}.goals h2 small{font-size:15px;color:var(--dim)}
+.gcard{background:var(--card);border:2.5px solid var(--ink);border-radius:16px;padding:12px 16px;margin-bottom:12px}
+.gcard .gt{font-weight:900;font-size:18px}
+.gcard ul{margin:6px 0 0;padding-left:20px;line-height:1.75;font-weight:700;color:#4a3d30}
+.gs{display:inline-block;margin-left:8px;font-size:14px;color:var(--teal-d);background:#e3f5f1;border-radius:999px;padding:0 10px}
 /* 結果 */
 .result{text-align:center;padding:10px 0}
 .result .bigstar{font-size:64px;letter-spacing:6px}
@@ -207,11 +218,13 @@ input[type=range]::-moz-range-thumb{width:34px;height:34px;border-radius:50%;bac
     <div class="hero-art" id="heroArt"></div>
   </section>
   <div class="map" id="map"></div>
+  <section class="goals" id="goalsHome"></section>
   <div class="tips">📱 操作小提醒：圖形可以用手指<b>拖曳</b>；答案用畫面上的<b>數字鍵</b>輸入。每個工作台第一次就答對越多，星星越多（最多 3 顆）。進度存在這台平板上。</div>
 </main>
 
 <!-- ============ 工作台 ============ -->
 <main id="station" class="hidden">
+  <details class="goalbar" id="goalBar"></details>
   <div class="bar"><i id="barFill"></i></div>
   <div class="work">
     <div class="stage" id="stage"></div>
@@ -263,10 +276,10 @@ function confetti(n = 70) {
 /* ---------- SVG 工具（座標用「格」為單位，1 格 = 1 公分） ---------- */
 const P = x => (x * U).toFixed(1);
 const pts = a => a.map(p => P(p[0]) + ',' + P(p[1])).join(' ');
-function fig(cols, rows, inner, pad = 1) {
+function fig(cols, rows, inner, pad = 1, grid = true) {
   let g = '';
-  for (let i = 0; i <= cols; i++) g += `<line x1="${P(i)}" y1="0" x2="${P(i)}" y2="${P(rows)}" class="gl"/>`;
-  for (let j = 0; j <= rows; j++) g += `<line x1="0" y1="${P(j)}" x2="${P(cols)}" y2="${P(j)}" class="gl"/>`;
+  if (grid) for (let i = 0; i <= cols; i++) g += `<line x1="${P(i)}" y1="0" x2="${P(i)}" y2="${P(rows)}" class="gl"/>`;
+  if (grid) for (let j = 0; j <= rows; j++) g += `<line x1="0" y1="${P(j)}" x2="${P(cols)}" y2="${P(j)}" class="gl"/>`;
   return `<svg class="fig" viewBox="${-pad * U} ${-pad * U} ${(cols + 2 * pad) * U} ${(rows + 2 * pad) * U}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${P(cols)}" height="${P(rows)}" class="paper"/>${g}${inner}</svg>`;
 }
 const poly = (a, cls, extra = '') => `<polygon points="${pts(a)}" class="${cls}" ${extra}/>`;
@@ -306,27 +319,28 @@ function pgFigure(b, h, s, o = {}) {           // 底 b、高 h、上邊往右�
   const ox = 1 - minx, oy = 1, cols = maxx - minx + 2, rows = h + 2;
   const A = [ox, oy + h], B = [ox + b, oy + h], C = [ox + b + s, oy], D = [ox + s, oy], F = [ox + s, oy + h];
   let g = poly([A, B, C, D], 'shape s-or');
-  g += heightMark(D, F, A, B, o.hQ ? '?' : h + ' 公分');
-  g += txt((A[0] + B[0]) / 2, A[1] + .6, b + ' 公分', 'lbl lb');
+  g += heightMark(D, F, A, B, o.hQ ? '?' : (o.lh || h + ' 公分'));
+  g += txt((A[0] + B[0]) / 2, A[1] + .6, o.lb || b + ' 公分', 'lbl lb');
   if (o.slant) g += txt((A[0] + D[0]) / 2 - .35, (A[1] + D[1]) / 2, o.slant + ' 公分', 'lbl ls', 'end');
-  return fig(cols, rows, g);
+  return fig(cols, rows, g, 1, !o.nogrid);
 }
 function triFigure(b, h, a, o = {}) {          // 底 b、高 h、頂點在底邊左端往右 a 格
   const minx = Math.min(0, a), maxx = Math.max(b, a);
   const ox = 1 - minx, oy = 1, cols = maxx - minx + 2, rows = h + 2;
   const A = [ox, oy + h], B = [ox + b, oy + h], T = [ox + a, oy], F = [ox + a, oy + h];
   let g = poly([A, B, T], 'shape s-or');
-  g += heightMark(T, F, A, B, o.hQ ? '?' : h + ' 公分');
-  g += txt((A[0] + B[0]) / 2, A[1] + .6, b + ' 公分', 'lbl lb');
-  return fig(cols, rows, g);
+  g += heightMark(T, F, A, B, o.hQ ? '?' : (o.lh || h + ' 公分'));
+  g += txt((A[0] + B[0]) / 2, A[1] + .6, o.lb || b + ' 公分', 'lbl lb');
+  if (o.ext) g += txt((B[0] + F[0]) / 2, B[1] + .6, o.ext, 'lbl');
+  return fig(cols, rows, g, 1, !o.nogrid);
 }
-function trapFigure(u, l, h, s) {              // 上底 u、下底 l、高 h
+function trapFigure(u, l, h, s, o = {}) {      // 上底 u、下底 l、高 h
   const A = [1, 1 + h], B = [1 + l, 1 + h], C = [1 + s + u, 1], D = [1 + s, 1], F = [1 + s, 1 + h];
   let g = poly([A, B, C, D], 'shape s-or');
-  g += heightMark(D, F, A, B, h + ' 公分');
-  g += txt((A[0] + B[0]) / 2, A[1] + .6, '下底 ' + l + ' 公分', 'lbl lb');
-  g += txt((C[0] + D[0]) / 2, D[1] - .5, '上底 ' + u + ' 公分', 'lbl lb');
-  return fig(l + 2, h + 2, g);
+  g += heightMark(D, F, A, B, o.lh || h + ' 公分');
+  g += txt((A[0] + B[0]) / 2, A[1] + .6, '下底 ' + (o.ll || l + ' 公分'), 'lbl lb');
+  g += txt((C[0] + D[0]) / 2, D[1] - .5, '上底 ' + (o.lu || u + ' 公分'), 'lbl lb');
+  return fig(l + 2, h + 2, g, 1, !o.nogrid);
 }
 
 /* ---------- 題目產生器 ---------- */
@@ -524,7 +538,7 @@ function moveLab(o) {
         cut = true; T = (o.nudge || [0, 0]).slice(); sSnap(); draw();
         prompt.innerHTML = o.text2 || o.text; rb.disabled = false;
       };
-      else if (!done) dragify(svg, cp, () => T0 = T.slice(), d => { T = [clamp(T0[0] + d[0], -3, o.cols), clamp(T0[1] + d[1], -3, o.rows)]; place(); }, () => check(true));
+      else if (!done) dragify(svg, cp, () => T0 = T.slice(), d => { T = [clamp(T0[0] + d[0], -o.cols, o.cols), clamp(T0[1] + d[1], -o.rows, o.rows)]; place(); }, () => check(true));
     }
     ctx.panel.innerHTML = `<span class="qtag">動手做</span><div class="prompt"></div>`;
     const prompt = ctx.panel.querySelector('.prompt'); prompt.innerHTML = o.text;
@@ -540,7 +554,7 @@ function moveLab(o) {
           T = g.T.slice(); place(); sSnap();
           if (got.has(g.name)) { fb.className = 'fb info show'; fb.innerHTML = `這個<b>${g.name}</b>已經拼過囉！${o.mode === 'flip' ? '按「🔃 翻面」' : ''}試試另一種。`; setTimeout(back, 1300); return; }
           got.add(g.name);
-          if (got.size === o.targets.length) {
+          if (got.size >= (o.need || o.targets.length)) {
             done = true; cp.classList.remove('drag'); confetti(30); rb.disabled = true;
             svg.querySelector('#after').innerHTML = o.afterSVG || '';
             fb.className = 'fb good show'; fb.innerHTML = o.success; nextBtn(ctx, '繼續 →');
@@ -745,6 +759,11 @@ function st1() {
     choiceQ({ tag: '想想看', q: '長方形的<span class="k">長</span>，就是原來平行四邊形的哪裡？', fig: rectFig(txt(6, 5.6, '長', 'lbl lb')), opts: ['底', '高', '斜邊'], a: '底', hint: '看看虛線的原來形狀，長方形的長和哪一條邊一樣長？', exp: '長方形的長 ＝ 平行四邊形的<b>底</b>' }),
     choiceQ({ tag: '想想看', q: '長方形的<span class="r">寬</span>，就是原來平行四邊形的哪裡？', fig: rectFig(txt(9.25, 3, '寬', 'lbl lh', 'start')), opts: ['底', '高', '斜邊'], a: '高', hint: '我們是沿著哪一條線剪開的？', exp: '長方形的寬 ＝ 平行四邊形的<b>高</b>（就是剪開的那條紅線）' }),
     infoStep({ fig: pgLabeled, title: '長方形面積 ＝ 長 × 寬，所以……', formula: '平行四邊形面積 ＝ <b>底</b> × <i>高</i>', note: '⚠️ 高要和底<b>互相垂直</b>，斜斜的邊不是高喔！' }),
+    tapLabel({ cols: 8, rows: 5, nogrid: true, shape: [[1, 4], [5, 4], [7, 1], [3, 1]], extra: rmark([3, 4], [3, 1], [1, 4], [5, 4]),
+      segs: [{ id: 'b', a: [1, 4], b: [5, 4], label: '8 公分', lx: 3, ly: 4.6 }, { id: 'h', a: [3, 1], b: [3, 4], label: '6 公分', lx: 3.2, ly: 2.5, anchor: 'start' }, { id: 'g', a: [1, 4], b: [3, 1], label: '7 公分', lx: 1.75, ly: 2.3, anchor: 'end' }],
+      asks: [{ name: '底', id: 'b', hint: '底是下面那條邊。' }, { name: '高', id: 'h', hint: '高要和底垂直。', why: '7 公分是斜邊，不是高！' }],
+      q: '課本例題 4、5：', done: '底 8 公分、高 6 公分。斜邊 7 公分用不到！' }),
+    numQ({ tag: '例題 5', q: '這個平行四邊形的面積是多少平方公分？', fig: pgFigure(4, 3, 2, { lb: '8 公分', lh: '6 公分', slant: 7, nogrid: true }), a: 48, unit: '平方公分', hint: '斜邊 7 公分不是高喔！' + HINT_PG, exp: '8 × 6 ＝ 48（平方公分）' }),
     numQ(genPG('in')), numQ(genPG('slant')), numQ(genPG('out')), numQ(genPG('in')),
   ];
 }
@@ -813,7 +832,120 @@ function st2() {
       q: '這次的<span class="k">底是斜的</span>！從頂點<span style="color:var(--violet)">●</span>畫出它的<span class="r">高</span>。', tip: '可以把平板轉一轉，讓藍色底邊變成在下面，比較好看出直角。', exp: '底換了，高也跟著換！' }),
     pullHeight({ no: 4, cols: 9, rows: 6, shape: [[1, 5], [7, 5], [4, 1]], base: [[7, 5], [4, 1]], apex: [1, 5], range: [-.3, 1.3], startT: .2, labelOff: [1, -.2],
       q: '三角形的<span class="k">斜斜的底邊</span>，它的<span class="r">高</span>在哪裡？從頂點<span style="color:var(--violet)">●</span>畫畫看。', tip: '想像三角板的直角對齊藍色的邊。', exp: '任何一條邊都可以當底，每個底都有自己的高。' }),
+    pullHeight({ no: 5, cols: 9, rows: 6, shape: [[1, 5], [8, 5], [5, 1]], base: [[1, 5], [8, 5]], apex: [5, 1], range: [-.1, 1.1], startT: .15,
+      q: '銳角三角形：從頂點<span style="color:var(--violet)">●</span>畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>。', tip: '從頂點直直往下畫到底邊。', exp: '由頂點畫出和底邊垂直的線段，就是三角形的高。' }),
+    pullHeight({ no: 6, cols: 8, rows: 6, shape: [[1, 5], [7, 5], [1, 1]], base: [[1, 5], [7, 5]], apex: [1, 1], range: [-.3, 1], startT: .6,
+      q: '底邊上有一個<b>直角</b>的三角形，<span class="r">高</span>要怎麼畫？從頂點<span style="color:var(--violet)">●</span>拉拉看。', tip: '把三角板放在底邊上，看看哪一條邊已經和底垂直了？', exp: '直角三角形的高，剛好就是<b>另一條直角邊</b>！' }),
   ];
+}
+
+/* ---------- 量高：拖動三角板，量平行線間的距離（課本 p.121、128） ---------- */
+function measureLab(o) {
+  return ctx => {
+    const [x0, x1] = o.range, yt = o.yt, yb = o.yb; let x = o.start, xs, last = x; const seen = new Set();
+    const ruler = xx => `<polygon points="${pts([[xx, yb], [xx + 1.6, yb], [xx, yt]])}" fill="rgba(47,111,222,.13)" stroke="#2f6fde" stroke-width="2"/>` +
+      seg([xx, yt], [xx, yb], 'hgt') + rmark([xx, yb], [xx, yt], [x0, yb], [x1, yb]) + txt(xx - .2, (yt + yb) / 2, o.len, 'lbl lh', 'end');
+    ctx.stage.innerHTML = fig(o.cols, o.rows, poly(o.shape, 'shape s-or') + o.sides.map(s => seg(s[0], s[1], 'base')).join('') + (o.extra || '') +
+      `<g id="rl" class="drag">${ruler(x)}<circle cx="${P(x + .8)}" cy="${P(yb - .5)}" r="15" fill="var(--blue)" stroke="#fff" stroke-width="3"/></g>`);
+    const svg = ctx.stage.querySelector('svg'), rl = svg.querySelector('#rl'), xDraw = x;
+    const note = mk('div', 'note');
+    dragify(svg, rl, () => xs = x, d => { x = Math.round(clamp(xs + d[0], x0, x1) * 2) / 2; rl.setAttribute('transform', `translate(${P(x - xDraw)},0)`); if (x !== last) { last = x; beep([500], .02); } }, () => {
+      seen.add(x); note.innerHTML = `已經量了 <b>${seen.size}</b> 個位置，每次都是 <b>${o.len}</b>。`;
+      if (seen.size >= 3 && !done) { done = true; sGood(); fb.className = 'fb good show pop'; fb.innerHTML = o.success; ctx.record(true); nextBtn(ctx, '繼續 →'); }
+    });
+    let done = false;
+    ctx.panel.innerHTML = `<span class="qtag">量量看</span><div class="prompt">${o.q}</div><div class="note" style="margin-bottom:8px">拖動藍色<b>三角板</b>，讓直角對齊<span class="k">藍色的邊</span>，在<b>3 個不同位置</b>量量看。</div>`;
+    ctx.panel.appendChild(note); const fb = mk('div', 'fb'); fb.style.marginTop = '10px'; ctx.panel.appendChild(fb);
+  };
+}
+
+/* ---------- 指一指：依序點出底、高、上底、下底（課本 p.122、129） ---------- */
+function tapLabel(o) {
+  return ctx => {
+    let k = 0, miss = 0; const named = {};
+    const draw = () => {
+      let g = poly(o.shape, 'shape s-or') + (o.extra || '');
+      o.segs.forEach(s => {
+        const on = named[s.id];
+        g += `<g class="pick" data-id="${s.id}">${seg(s.a, s.b, on ? 'opt-line good' : 'opt-line')}${seg(s.a, s.b, 'hit')}</g>` + txt(s.lx, s.ly, s.label + (on ? `（${on}）` : ''), on ? 'lbl lb' : 'lbl', s.anchor || 'middle');
+      });
+      ctx.stage.innerHTML = fig(o.cols, o.rows, g, 1, !o.nogrid);
+      ctx.stage.querySelectorAll('.pick').forEach(el => el.onclick = () => tap(el.dataset.id));
+    };
+    const ask = () => { qEl.innerHTML = `${o.q || ''}點一點：哪一條是<span class="r">「${o.asks[k].name}」</span>？`; };
+    function tap(id) {
+      if (k >= o.asks.length || named[id]) return;
+      const a = o.asks[k];
+      if (id === a.id) {
+        named[id] = a.name; sSnap(); k++; draw(); fb.className = 'fb good show'; fb.innerHTML = `✅ 對！${a.why || ''}`;
+        if (k >= o.asks.length) { ctx.record(miss === 0); qEl.innerHTML = o.done || '都找到了！'; nextBtn(ctx, '繼續 →'); } else ask();
+      } else { miss++; sBad(); fb.className = 'fb bad show'; fb.innerHTML = '不是這一條喔！' + (o.asks[k].hint || ''); }
+    }
+    ctx.panel.innerHTML = `<span class="qtag">指一指</span><div class="prompt"></div>`;
+    const qEl = ctx.panel.querySelector('.prompt'); const fb = mk('div', 'fb'); ctx.panel.appendChild(fb);
+    ask(); draw();
+  };
+}
+
+/* ---------- 等底等高：在平行線上滑動（三角形頂點／平行四邊形上邊） ---------- */
+function slideLab(kind) {
+  return ctx => {
+    let ax = kind === 'tri' ? 7 : 4, ax0, moved = 0, last = ax; const ghosts = [];
+    const A = [4, 5], B = [10, 5];
+    const shapeAt = x => kind === 'tri' ? [A, B, [x, 1]] : [A, B, [x + 6, 1], [x, 1]];
+    const area = kind === 'tri' ? '6 × 4 ÷ 2 ＝ 12' : '6 × 4 ＝ 24';
+    const draw = () => {
+      let g = seg([-1, 1], [17, 1], 'par') + seg([-1, 5], [17, 5], 'par');
+      ghosts.forEach(x => g += poly(shapeAt(x), 'shape s-ghost'));
+      g += poly(shapeAt(ax), 'shape s-or', 'id="sh"') + seg(A, B, 'base') + `<g id="hm">${heightMark([ax, 1], [ax, 5], A, B, '4 公分')}</g>` + txt(7, 5.6, '6 公分', 'lbl lb');
+      const hx = kind === 'tri' ? ax : ax + 3;
+      g += `<g id="hd" class="drag"><circle cx="${P(hx)}" cy="${P(1)}" r="26" fill="rgba(122,79,208,.18)"/><circle cx="${P(hx)}" cy="${P(1)}" r="13" fill="var(--violet)" stroke="#fff" stroke-width="3"/></g>`;
+      ctx.stage.innerHTML = fig(16, 6, g);
+      const svg = ctx.stage.querySelector('svg');
+      dragify(svg, svg.querySelector('#hd'), () => ax0 = ax, d => {
+        ax = Math.round(clamp(ax0 + d[0], kind === 'tri' ? 0 : -1, kind === 'tri' ? 16 : 11) * 2) / 2;
+        if (ax !== last) {
+          moved += Math.abs(ax - last); last = ax;
+          svg.querySelector('#sh').setAttribute('points', pts(shapeAt(ax)));
+          svg.querySelector('#hm').innerHTML = heightMark([ax, 1], [ax, 5], A, B, '4 公分');
+          svg.querySelectorAll('#hd circle').forEach(c => c.setAttribute('cx', P(kind === 'tri' ? ax : ax + 3)));
+        }
+      }, () => { ghosts.push(ax); if (ghosts.length > 5) ghosts.shift(); draw(); if (moved >= 6 && !btn.isConnected) { ctx.panel.appendChild(fb); ctx.panel.appendChild(btn); } });
+    };
+    ctx.panel.innerHTML = `<span class="qtag">實驗室</span><div class="prompt">拖動<span style="color:var(--violet)">紫色圓點</span>，讓${kind === 'tri' ? '三角形的頂點' : '平行四邊形的上邊'}在上面那條平行線上<b>左右滑動</b>。<br>形狀變了，面積呢？</div>
+      <div class="read"><span>底</span><b>6 公分</b><span>高</span><b>4 公分</b><span>面積</span><b>${area} 平方公分</b></div>`;
+    const fb = mk('div', 'fb info show', `🔍 怎麼滑，底都是 6、高都是 4（兩條平行線的距離不變），所以面積<b>永遠是 ${area.split('＝ ')[1]} 平方公分</b>！`);
+    const btn = mk('button', 'big pop', '我發現了 →'); btn.onclick = () => ctx.next();
+    draw();
+  };
+}
+
+/* ---------- 底或高變成幾倍（課本 p.131） ---------- */
+function multLab(which) {
+  return ctx => {
+    const res = {};
+    const vals = which === '高' ? [2, 4, 6] : [2, 4, 6];
+    const draw = v => {
+      const b = which === '高' ? 4 : v, h = which === '高' ? v : 3;
+      const g = poly([[1, 7], [1 + b, 7], [1 + b / 2, 7 - h]], 'shape s-or') + heightMark([1 + b / 2, 7 - h], [1 + b / 2, 7], [1, 7], [1 + b, 7], h + ' 公分') + txt(1 + b / 2, 7.6, b + ' 公分', 'lbl lb');
+      ctx.stage.innerHTML = fig(8, 8, g);
+    };
+    const fixed = which === '高' ? '底都是 4 公分' : '高都是 3 公分';
+    ctx.panel.innerHTML = `<span class="qtag">實驗室</span><div class="prompt">${fixed}。按按看，把<span class="${which === '高' ? 'r' : 'k'}">${which}</span>變成 2 倍、3 倍，面積會怎麼變？</div>`;
+    const row = mk('div', 'row'); ctx.panel.appendChild(row);
+    const tb = mk('table', 'tb', `<tr><th>${which}</th><th>面積</th><th>是原來的</th></tr>`); tb.style.marginTop = '12px'; ctx.panel.appendChild(tb);
+    vals.forEach((v, i) => {
+      const b = mk('button', 'tool', `${which} ${v} 公分`);
+      b.onclick = () => {
+        draw(v); row.querySelectorAll('.tool').forEach(x => x.classList.remove('on')); b.classList.add('on'); beep([330 + v * 60], .08);
+        const area = which === '高' ? 4 * v / 2 : v * 3 / 2, f = which === '高' ? `4 × ${v} ÷ 2` : `${v} × 3 ÷ 2`;
+        if (!res[v]) { res[v] = 1; tb.insertAdjacentHTML('beforeend', `<tr class="pop"><td class="n">${v}</td><td class="n">${f} ＝ ${area}</td><td>${i ? (i + 1) + ' 倍' : '—'}</td></tr>`); }
+        if (Object.keys(res).length === 3 && !ctx.panel.querySelector('.big')) nextBtn(ctx, '我發現了 →');
+      };
+      row.appendChild(b);
+    });
+    draw(vals[0]);
+  };
 }
 
 /* =====================================================
@@ -822,6 +954,7 @@ function st2() {
 function st3() {
   const P3 = [[0, 5], [6, 5], [2, 1]];
   const pgFig = fig(15, 6, poly(P3, 'shape s-or') + poly([[8, 1], [2, 1], [6, 5]], 'shape s-teal') + heightMark([2, 1], [2, 5], [0, 5], [6, 5], '4 公分') + txt(3, 5.6, '6 公分', 'lbl lb'));
+  const T3 = [[4, 5], [10, 5], [6, 1]];
   return [
     dupLab({ P: P3, M: [4, 3], cols: 15, rows: 6, startT: [8, 0],
       text: '影印機複製了一個一模一樣的<span style="color:var(--teal-d)">綠色三角形</span>。<br>按「🔄 轉 180°」，再把它<b>拖過去</b>，和橘色三角形拼成一個<span class="o">平行四邊形</span>！',
@@ -829,12 +962,19 @@ function st3() {
       afterSVG: heightMark([2, 1], [2, 5], [0, 5], [6, 5], '4 公分') + txt(3, 5.6, '6 公分', 'lbl lb') }),
     dupLab({ P: [[0, 5], [5, 5], [0, 1]], M: [2.5, 3], cols: 13, rows: 6, startT: [7, 0],
       text: '換<b>直角三角形</b>試試看！把複製的綠色直角三角形轉 180°，再拖過去拼拼看，會變成什麼形狀？',
-      success: '🎉 兩個一樣的直角三角形，拼成了<b>長方形</b>！<br>所以直角三角形的面積是長方形的<b>一半</b>：5 × 4 ÷ 2 ＝ 10（平方公分）',
+      success: '🎉 兩個一樣的直角三角形，拼成了<b>長方形</b>！<br>所以直角三角形的面積是長方形的<b>一半</b>。',
       afterSVG: txt(2.5, 5.6, '5 公分', 'lbl lb') + txt(-.25, 3, '4 公分', 'lbl lh', 'end') }),
-    numQ({ tag: '算算看', q: '拼成的<span class="o">平行四邊形</span>面積是多少平方公分？', fig: pgFig, a: 24, unit: '平方公分', hint: HINT_PG, exp: '6 × 4 ＝ 24（平方公分）' }),
+    moveLab({ cols: 16, rows: 10, fixed: [T3], piece: T3, mode: 'rot', startT: [6, 4], need: 2,
+      targets: [{ name: '平行四邊形（接在右邊）', T: [2, 0], tf: true }, { name: '平行四邊形（接在左邊）', T: [-4, 0], tf: true }, { name: '平行四邊形（接在下面）', T: [0, 4], tf: true }],
+      text: '兩個一樣的三角形，<b>只有一種拼法</b>嗎？<br>把綠色三角形轉 180°，接在橘色三角形的<b>不同邊</b>上，找出 <b>2 種</b>拼法！',
+      more: '再換一條邊接接看，找出另一種拼法！',
+      success: '🎉 接在不同的邊上，都能拼成<b>平行四邊形</b>！<br>不管怎麼拼，三角形都是平行四邊形的<b>一半</b>。' }),
+    numQ({ tag: '算算看', q: '第一次拼成的<span class="o">平行四邊形</span>面積是多少平方公分？', fig: pgFig, a: 24, unit: '平方公分', hint: HINT_PG, exp: '6 × 4 ＝ 24（平方公分）' }),
     numQ({ tag: '算算看', q: '那<span class="o">一個三角形</span>的面積是多少平方公分？', fig: pgFig, a: 12, unit: '平方公分', hint: '平行四邊形是由兩個一樣的三角形拼成的。', exp: '24 ÷ 2 ＝ 12（平方公分），是平行四邊形的一半' }),
     choiceQ({ tag: '找公式', q: '三角形的底、高，和平行四邊形的底、高一樣。三角形面積怎麼算？', fig: pgFig, opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 高 × 2', '(底 ＋ 高) ÷ 2']), a: '底 × 高 ÷ 2', hint: '三角形是平行四邊形的「一半」。', exp: '' }),
     infoStep({ fig: pgFig, title: '三角形是同底同高平行四邊形的一半', formula: '三角形面積 ＝ <b>底</b> × <i>高</i> ÷ 2', note: '任何三角形都可以複製一個，拼成平行四邊形喔！' }),
+    numQ({ tag: '例題 5', q: '三角形的面積是 <span class="o">12 平方公分</span>，底是 6 公分，高是幾公分？', fig: triFigure(6, 4, 2, { hQ: true }), a: 4, unit: '公分',
+      hint: '兩個一樣的三角形拼成平行四邊形，面積是 12 × 2 ＝ 24。平行四邊形的底是 6，高是……', exp: '12 × 2 ＝ 24，24 ÷ 6 ＝ 4（公分）。平行四邊形的高就是三角形的高。' }),
     numQ(genTri('in')), numQ(genTri('right')), numQ(genTri('out')), numQ(genFindH('tri')),
   ];
 }
@@ -846,15 +986,39 @@ function st4() {
   const P4 = [[0, 5], [7, 5], [5, 1], [2, 1]];
   const lbls = heightMark([2, 1], [2, 5], [0, 5], [7, 5], '4 公分') + txt(3.5, 5.6, '下底 7', 'lbl lb') + txt(3.5, .55, '上底 3', 'lbl lb') + txt(8.5, 5.6, '3', 'lbl') + txt(8.5, .55, '7', 'lbl');
   const pgFig = fig(17, 6, poly(P4, 'shape s-or') + poly([[12, 1], [5, 1], [7, 5], [10, 5]], 'shape s-teal') + lbls);
+  const RT = [[0, 5], [6, 5], [3, 1], [0, 1]];   // 直角梯形
+  // 例題5：上底 8、下底 14、高 6（圖按比例縮小一半）
+  const ex5 = { shape: [[1, 4], [8, 4], [6, 1], [2, 1]] };
+  const ex5segs = [
+    { id: 'u', a: [2, 1], b: [6, 1], label: '8 公分', lx: 4, ly: .5 },
+    { id: 'l', a: [1, 4], b: [8, 4], label: '14 公分', lx: 4.5, ly: 4.6 },
+    { id: 'h', a: [3, 1], b: [3, 4], label: '6 公分', lx: 3.2, ly: 2.5, anchor: 'start' },
+    { id: 'g', a: [8, 4], b: [6, 1], label: '7 公分', lx: 7.4, ly: 2.3, anchor: 'start' },
+  ];
+  const ex5fig = fig(10, 5, poly(ex5.shape, 'shape s-or') + heightMark([3, 1], [3, 4], [1, 4], [8, 4], '6 公分') + txt(4, .5, '上底 8 公分', 'lbl lb') + txt(4.5, 4.6, '下底 14 公分', 'lbl lb') + txt(7.4, 2.3, '7 公分', 'lbl ls', 'start'), 1, false);
   return [
     dupLab({ P: P4, M: [6, 3], cols: 17, rows: 6, startT: [10, 0],
       text: '這次是<span class="o">梯形</span>！把複製的<span style="color:var(--teal-d)">綠色梯形</span>轉 180°，再拖過去拼成<span class="o">平行四邊形</span>。',
       success: '🎉 兩個一樣的梯形，也拼成了<b>平行四邊形</b>！', afterSVG: lbls }),
+    dupLab({ P: RT, M: [4.5, 3], cols: 16, rows: 6, startT: [9, 0],
+      text: '換一個<b>直角梯形</b>試試看！轉 180° 再拖過去，也能拼成平行四邊形嗎？',
+      success: '🎉 直角梯形也可以！兩個一樣的梯形拼成了<b>長方形</b>（長方形也是一種平行四邊形）。',
+      afterSVG: txt(1.5, .55, '上底 3', 'lbl lb') + txt(3, 5.6, '下底 6', 'lbl lb') }),
     choiceQ({ tag: '想想看', q: '拼成的平行四邊形，它的<span class="k">底</span>是梯形的什麼？', fig: pgFig, opts: shuffle(['上底 ＋ 下底', '下底', '上底', '上底 × 下底']), a: '上底 ＋ 下底', hint: '看看最下面那條邊，是哪兩段接起來的？', exp: '平行四邊形的底 ＝ 3 ＋ 7 ＝ 10（公分）' }),
+    measureLab({ cols: 9, rows: 6, shape: [[1, 5], [8, 5], [6, 1], [2, 1]], sides: [[[2, 1], [6, 1]], [[1, 5], [8, 5]]], range: [2, 6], start: 3, yt: 1, yb: 5, len: '4 公分',
+      q: '梯形的<span class="k">上底</span>和<span class="k">下底</span>互相平行。它們之間的距離是多少？', extra: txt(4, .5, '上底', 'lbl lb') + txt(4.5, 5.6, '下底', 'lbl lb'),
+      success: '🎉 平行線之間的距離<b>處處相等</b>，都是 4 公分。<br>上底和下底之間的距離，就是梯形的<b>高</b>。' }),
     numQ({ tag: '算算看', q: '拼成的<span class="o">平行四邊形</span>面積是多少平方公分？', fig: pgFig, a: 40, unit: '平方公分', hint: '底是 3 ＋ 7，高是 4。', exp: '(3 ＋ 7) × 4 ＝ 40（平方公分）' }),
     numQ({ tag: '算算看', q: '那<span class="o">一個梯形</span>的面積是多少平方公分？', fig: pgFig, a: 20, unit: '平方公分', hint: '梯形是平行四邊形的一半。', exp: '40 ÷ 2 ＝ 20（平方公分）' }),
     infoStep({ fig: pgFig, title: '梯形是拼成的平行四邊形的一半', formula: '梯形面積 ＝ (<b>上底</b> ＋ <b>下底</b>) × <i>高</i> ÷ 2', note: '梯形中互相平行的兩條邊，叫做<b>上底</b>和<b>下底</b>；它們之間的距離就是<b>高</b>。' }),
-    numQ(genTrap()), numQ(genTrap()), numQ(genTrap()), numQ(genFindH('pg')),
+    tapLabel({ cols: 10, rows: 5, nogrid: true, shape: ex5.shape, segs: ex5segs, extra: rmark([3, 4], [3, 1], [1, 4], [8, 4]),
+      asks: [{ name: '上底', id: 'u', hint: '上底和下底是互相平行的兩條邊。' }, { name: '下底', id: 'l', hint: '上底和下底是互相平行的兩條邊。' }, { name: '高', id: 'h', hint: '高要和上底、下底垂直。', why: '7 公分是斜邊，不是高！' }],
+      q: '課本例題 5：', done: '上底 8 公分、下底 14 公分、高 6 公分。7 公分的斜邊用不到喔！' }),
+    numQ({ tag: '例題 5', q: '這個梯形的面積是多少平方公分？', fig: ex5fig, a: 66, unit: '平方公分', hint: HINT_TRAP + '<br>小心，7 公分是斜邊！', exp: '(8 ＋ 14) × 6 ÷ 2 ＝ 66（平方公分）' }),
+    numQ({ tag: '例題 6', q: '平行四邊形的面積是 <span class="o">84 平方公分</span>，底是 12 公分，高是多少公分？', fig: pgFigure(6, 4, 2, { hQ: true, lb: '12 公分', nogrid: true }), a: 7, unit: '公分', hint: '底 × 高 ＝ 面積，所以 高 ＝ 面積 ÷ 底', exp: '84 ÷ 12 ＝ 7（公分）' }),
+    choiceQ({ tag: '例題 6', q: '把這個平行四邊形<b>切成兩個一樣的梯形</b>，梯形的高是多少公分？', fig: fig(10, 6, poly([[1, 5], [7, 5], [9, 1], [3, 1]], 'shape s-or') + seg([3, 5], [7, 1], 'cut') + heightMark([3, 1], [3, 5], [1, 5], [7, 5], '7 公分') + txt(4, 5.6, '12 公分', 'lbl lb'), 1, false),
+      opts: ['7 公分', '6 公分', '14 公分', '3.5 公分'], a: '7 公分', hint: '切開以後，上下兩條平行線的距離有變嗎？', exp: '梯形的高就是平行四邊形的高：<b>7 公分</b>。' }),
+    numQ(genTrap()), numQ(genTrap()), numQ(genTrap()),
   ];
 }
 
@@ -862,82 +1026,35 @@ function st4() {
    工作台 5：等底等高實驗室
    ===================================================== */
 function st5() {
-  const apexLab = ctx => {
-    let ax = 7, ax0, moved = 0, last = ax;
-    const ghosts = [];
-    const A = [4, 5], B = [10, 5];
-    const draw = () => {
-      const T = [ax, 1], F = [ax, 5];
-      let g = seg([0, 1], [14, 1], 'par') + seg([0, 5], [14, 5], 'par');
-      ghosts.forEach(x => g += poly([A, B, [x, 1]], 'shape s-ghost'));
-      g += poly([A, B, T], 'shape s-or', 'id="tri"') + seg(A, B, 'base') + `<g id="hm">${heightMark(T, F, A, B, '4 公分')}</g>` + txt(7, 5.6, '6 公分', 'lbl lb');
-      g += `<g id="hd" class="drag"><circle cx="${P(ax)}" cy="${P(1)}" r="26" fill="rgba(122,79,208,.18)"/><circle cx="${P(ax)}" cy="${P(1)}" r="13" fill="var(--violet)" stroke="#fff" stroke-width="3"/></g>`;
-      ctx.stage.innerHTML = fig(14, 6, g);
-      const svg = ctx.stage.querySelector('svg');
-      dragify(svg, svg.querySelector('#hd'), () => ax0 = ax, d => {
-        ax = Math.round(clamp(ax0 + d[0], 0, 14) * 2) / 2;
-        if (ax !== last) { moved += Math.abs(ax - last); last = ax; draw2(svg); }
-      }, () => { ghosts.push(ax); if (ghosts.length > 5) ghosts.shift(); draw(); if (moved >= 6 && !btn.isConnected) { ctx.panel.appendChild(fb); ctx.panel.appendChild(btn); } });
-    };
-    const draw2 = (svg) => { // 拖曳中只移動頂點，不重建 DOM（保留拖曳狀態）
-      const T = [ax, 1], F = [ax, 5];
-      svg.querySelector('#tri').setAttribute('points', pts([A, B, T]));
-      svg.querySelector('#hm').innerHTML = heightMark(T, F, A, B, '4 公分');
-      const hd = svg.querySelector('#hd'); hd.querySelectorAll('circle').forEach(c => c.setAttribute('cx', P(ax)));
-    };
-    ctx.panel.innerHTML = `<span class="qtag">實驗室</span><div class="prompt">拖動<span style="color:var(--violet)">紫色的頂點</span>，讓它在上面那條平行線上<b>左右滑動</b>。<br>三角形的形狀變了，面積呢？</div>
-      <div class="read"><span>底</span><b>6 公分</b><span>高</span><b>4 公分</b><span>面積</span><b>6 × 4 ÷ 2 ＝ 12 平方公分</b></div>`;
-    const fb = mk('div', 'fb info show', '🔍 頂點怎麼移動，底都是 6、高都是 4（兩條平行線的距離不變），所以面積<b>永遠是 12 平方公分</b>！');
-    const btn = mk('button', 'big pop', '我發現了 →'); btn.onclick = () => ctx.next();
-    draw();
-  };
   const three = fig(17, 6, seg([0, 1], [17, 1], 'par') + seg([0, 5], [17, 5], 'par') +
     poly([[1, 5], [4, 5], [2, 1]], 'shape s-or') + poly([[6, 5], [9, 5], [9, 1]], 'shape s-teal') + poly([[11, 5], [14, 5], [16, 1]], 'shape s-soft') +
     txt(2.5, 5.6, '甲', 'lbl big') + txt(7.5, 5.6, '乙', 'lbl big') + txt(12.5, 5.6, '丙', 'lbl big'));
   const threePG = fig(17, 6, seg([0, 1], [17, 1], 'par') + seg([0, 5], [17, 5], 'par') +
     poly([[1, 5], [4, 5], [4, 1], [1, 1]], 'shape s-or') + poly([[6, 5], [9, 5], [11, 1], [8, 1]], 'shape s-teal') + poly([[13, 5], [16, 5], [15, 1], [12, 1]], 'shape s-soft') +
     txt(2.5, 5.6, 'ㄅ', 'lbl big') + txt(7.5, 5.6, 'ㄆ', 'lbl big') + txt(14.5, 5.6, 'ㄇ', 'lbl big'));
-  const hLab = ctx => {
-    const res = {};
-    const draw = h => {
-      let g = poly([[1, 7], [5, 7], [3, 7 - h]], 'shape s-or') + heightMark([3, 7 - h], [3, 7], [1, 7], [5, 7], h + ' 公分') + txt(3, 7.6, '4 公分', 'lbl lb');
-      ctx.stage.innerHTML = fig(9, 8, g);
-    };
-    ctx.panel.innerHTML = `<span class="qtag">實驗室</span><div class="prompt">底都是 4 公分。按按看，把<span class="r">高</span>變高，面積會怎麼變？</div>`;
-    const row = mk('div', 'row'); ctx.panel.appendChild(row);
-    const tb = mk('table', 'tb', '<tr><th>高</th><th>面積</th><th>是原來的</th></tr>'); tb.style.marginTop = '12px'; ctx.panel.appendChild(tb);
-    [[2, '原來'], [4, '2 倍'], [6, '3 倍']].forEach(([h, lab]) => {
-      const b = mk('button', 'tool', `高 ${h} 公分`);
-      b.onclick = () => {
-        draw(h); row.querySelectorAll('.tool').forEach(x => x.classList.remove('on')); b.classList.add('on'); beep([330 + h * 60], .08);
-        if (!res[h]) { res[h] = 1; tb.insertAdjacentHTML('beforeend', `<tr class="pop"><td class="n">${h}</td><td class="n">4 × ${h} ÷ 2 ＝ ${2 * h}</td><td>${lab === '原來' ? '—' : lab}</td></tr>`); }
-        if (Object.keys(res).length === 3 && !ctx.panel.querySelector('.big')) nextBtn(ctx, '我發現了 →');
-      };
-      row.appendChild(b);
-    });
-    draw(2);
-  };
   const pushLab = ctx => {
     const draw = k => { // 扣條長 4、底 6，往右推
       const ang = k / 10 * 1.25, dx = 4 * Math.sin(ang), hh = 4 * Math.cos(ang);
       const A = [1, 5], B = [7, 5], C = [7 + dx, 5 - hh], D = [1 + dx, 5 - hh];
-      let g = poly([[1, 5], [7, 5], [7, 1], [1, 1]], 'shape s-ghost') + poly([A, B, C, D], 'shape s-or') + seg(D, [D[0], 5], 'hgt') + txt(4, 5.6, '6 公分', 'lbl lb') + txt(D[0] + .2, 5 - hh / 2, '高', 'lbl lh', 'start');
+      const g = poly([[1, 5], [7, 5], [7, 1], [1, 1]], 'shape s-ghost') + poly([A, B, C, D], 'shape s-or') + seg(D, [D[0], 5], 'hgt') + txt(4, 5.6, '6 公分', 'lbl lb') + txt(D[0] + .2, 5 - hh / 2, '高', 'lbl lh', 'start');
       ctx.stage.innerHTML = fig(12, 6, g);
     };
     const slider = mk('input'); slider.type = 'range'; slider.min = 0; slider.max = 10; slider.value = 0; slider.style.marginBottom = '12px';
     slider.oninput = () => draw(+slider.value);
     draw(0);
-    choiceQ({ tag: '思考帽', q: '用 4 根扣條做成長方形，再慢慢<b>往右推斜</b>（拉動下面的滑桿）。推得越斜，面積會怎樣？',
+    choiceQ({ tag: '思考帽', q: '美美用 4 根扣條做了一個長方形，再慢慢<b>往右推斜</b>（拉動下面的滑桿）。推得越斜，面積會怎樣？',
       extra: c => c.panel.appendChild(slider), opts: ['變大', '變小', '不變'], a: '變小', hint: '底一直是 6 公分，那「高」呢？看看紅色虛線。', exp: '扣條長度不變，但<b>高越來越矮</b>，所以面積越來越小。周長不變，面積不一定不變喔！' })(ctx);
   };
   return [
-    apexLab,
-    choiceQ({ tag: '不用算', q: '甲、乙、丙三個三角形的<b>底都是 3 公分</b>，頂點都在同一條平行線上。<br>哪一個面積最大？', fig: three, opts: ['甲', '乙', '丙', '一樣大'], a: '一樣大', hint: '它們的底一樣長，高（兩條平行線的距離）呢？', exp: '<b>等底等高</b>的三角形，面積一樣大。' }),
-    choiceQ({ tag: '不用算', q: 'ㄅ、ㄆ、ㄇ三個平行四邊形，<b>底都是 3 公分</b>，夾在同樣的兩條平行線之間。哪一個面積最大？', fig: threePG, opts: ['ㄅ', 'ㄆ', 'ㄇ', '一樣大'], a: '一樣大', hint: '平行四邊形面積 ＝ 底 × 高，三個的底和高一樣嗎？', exp: '<b>等底等高</b>的平行四邊形，面積也一樣大。' }),
-    hLab,
-    choiceQ({ tag: '想想看', q: '三角形的底不變，<span class="r">高變成原來的 3 倍</span>，面積會變成原來的幾倍？', fig: multFigure(3, '高'), opts: ['一樣大', '2 倍', '3 倍', '6 倍'], a: '3 倍', hint: '看看剛剛的表格！', exp: '底不變，高變成幾倍，面積就變成幾倍。' }),
-    choiceQ({ tag: '想想看', q: '三角形的高不變，<span class="k">底變成原來的 4 倍</span>，面積會變成原來的幾倍？', fig: multFigure(4, '底'), opts: ['2 倍', '4 倍', '8 倍', '16 倍'], a: '4 倍', hint: '高一樣時，底變長幾倍……', exp: '高不變，底變成 4 倍，面積也變成 4 倍。' }),
+    slideLab('pg'),
+    choiceQ({ tag: '例題 1', q: 'ㄅ、ㄆ、ㄇ三個平行四邊形，<b>底都是 3 公分</b>，夾在同樣的兩條平行線之間。哪一個面積最大？', fig: threePG, opts: ['ㄅ', 'ㄆ', 'ㄇ', '一樣大'], a: '一樣大', hint: '平行四邊形面積 ＝ 底 × 高，三個的底和高一樣嗎？', exp: '<b>等底等高</b>的平行四邊形，面積一樣大。不用計算也知道！' }),
+    slideLab('tri'),
+    choiceQ({ tag: '例題 2', q: '甲、乙、丙三個三角形的<b>底都是 3 公分</b>，頂點都在同一條平行線上。<br>不用計算，哪一個面積最大？', fig: three, opts: ['甲', '乙', '丙', '一樣大'], a: '一樣大', hint: '它們的底一樣長，高（兩條平行線的距離）呢？', exp: '<b>等底等高</b>的三角形，面積也一樣大。' }),
     pushLab,
+    multLab('高'),
+    choiceQ({ tag: '例題 3', q: '三角形的底不變，<span class="r">高變成原來的 4 倍</span>，面積會變成原來的幾倍？<br><small style="color:var(--dim)">你可以不用計算就知道嗎？</small>', fig: multFigure(4, '高'), opts: ['一樣大', '2 倍', '4 倍', '8 倍'], a: '4 倍', hint: '看看剛剛的表格！', exp: '底不變，高變成幾倍，面積就變成幾倍。' }),
+    multLab('底'),
+    choiceQ({ tag: '例題 4', q: '三角形的高不變，<span class="k">底變成原來的 4 倍</span>，面積會變成原來的幾倍？', fig: multFigure(4, '底'), opts: ['2 倍', '4 倍', '8 倍', '16 倍'], a: '4 倍', hint: '高一樣時，底變長幾倍……', exp: '高不變，底變成 4 倍，面積也變成 4 倍。' }),
   ];
 }
 
@@ -960,8 +1077,37 @@ function stGeo() {
   ];
 }
 
+/* ---------- 道路問題圖（梯形土地＋平行四邊形道路，按比例縮小） ---------- */
+function roadFigure(u, l, h, w, unit, moved) {
+  const k = 12 / l, H = h * k, s = (l - u) / 2 * k, U2 = u * k, L = l * k, W = w * k;
+  const xb = L * .42, xt = s + U2 * .5;
+  const o = (p) => [p[0] + 1, p[1] + 1];
+  const left = [[0, H], [xb, H], [xt, 0], [s, 0]].map(o), road = [[xb, H], [xb + W, H], [xt + W, 0], [xt, 0]].map(o), right = [[xb + W, H], [L, H], [s + U2, 0], [xt + W, 0]].map(o);
+  let g = poly(left, 'shape s-or') + `<g class="slide" id="rt" ${moved ? `style="transform:translateX(${-W * U}px)"` : ''}>${poly(right, 'shape s-or')}</g>` +
+    `<g class="fade" id="rd" ${moved ? 'style="opacity:0"' : ''}>${poly(road, 'shape', 'fill="#9a8f80" stroke="#5f564b"')}${txt(xb + W / 2 + 1, H + 1.6, '路寬 ' + w, 'lbl')}</g>`;
+  g += txt(L / 2 + 1, H + 2.3, moved ? `下底 ${l} − ${w} ＝ ${l - w} ${unit}` : `下底 ${l} ${unit}`, 'lbl lb" id="lb1') + txt(L / 2 + 1, .45, moved ? `上底 ${u} − ${w} ＝ ${u - w} ${unit}` : `上底 ${u} ${unit}`, 'lbl lb" id="lb2') +
+    heightMark([s + 1, 1], [s + 1, H + 1], [1, H + 1], [L + 1, H + 1], h + ' ' + unit);
+  return fig(L + 2, H + 2.6, g, 1, false);
+}
+function roadMove(u, l, h, w, unit) {
+  return ctx => {
+    ctx.stage.innerHTML = roadFigure(u, l, h, w, unit, false);
+    ctx.panel.innerHTML = `<span class="qtag">動手做</span><div class="prompt">皮皮的方法：把道路拿掉，把右邊的土地<b>往左推</b>，會拼成什麼形狀？</div>`;
+    const b = mk('button', 'big', '➡️ 拿掉道路，往左推！'); ctx.panel.appendChild(b);
+    b.onclick = () => {
+      b.remove(); const s = ctx.stage, W = w * 12 / l;
+      s.querySelector('#rd').style.opacity = 0; s.querySelector('#rt').style.transform = `translateX(${-W * U}px)`; sSnap();
+      setTimeout(() => {
+        s.querySelector('#lb1').textContent = `下底 ${l} − ${w} ＝ ${l - w} ${unit}`; s.querySelector('#lb2').textContent = `上底 ${u} − ${w} ＝ ${u - w} ${unit}`;
+        ctx.panel.insertAdjacentHTML('beforeend', `<div class="fb good show pop">拼成一個新的<b>梯形</b>！<br>上底和下底都<b>少了路寬 ${w} ${unit}</b>，高還是 ${h} ${unit}。</div>`);
+        nextBtn(ctx, '繼續 →');
+      }, 950);
+    };
+  };
+}
+
 /* =====================================================
-   工作台 6：複合圖形
+   工作台 7：複合圖形
    ===================================================== */
 function st6() {
   const pc = (x, y, t) => txt(x, y, t, 'lbl pc');
@@ -988,45 +1134,86 @@ function st6() {
       ],
     };
   })();
-  const notch = (() => {
-    const p = [[1, 1], [3, 1], [5, 4], [7, 1], [9, 1], [9, 6], [1, 6]];
-    const dims = txt(5, 6.6, '8 公分', 'lbl lb') + txt(.75, 3.5, '5 公分', 'lbl', 'end') + txt(5, .5, '4 公分', 'lbl') + seg([5, 1], [5, 4], 'hgt') + txt(5.2, 2.2, '3', 'lbl lh', 'start');
+  // 課本例題 5：四邊形 ACDE（單位：公尺，圖縮小一半）
+  const ex5 = (() => {
+    const A = [1, 1], B = [1, 5.5], C = [1, 10], D = [14, 10], E = [11, 5.5];
+    const dims = txt(.55, 3.25, '9', 'lbl', 'end') + txt(.55, 7.75, '9', 'lbl', 'end') + txt(6, 5.1, '20', 'lbl') + txt(6, 10.6, '20', 'lbl lb') + txt(12.5, 10.6, '6', 'lbl lb') +
+      [['A', A, [.45, -.1]], ['B', B, [.45, -.35]], ['C', C, [.45, -.35]], ['D', D, [.35, 0]], ['E', E, [.3, -.3]]].map(([n, p, d]) => txt(p[0] + d[0], p[1] + d[1], n, 'lbl q', 'start')).join('');
+    const guides = seg(B, E, 'ext') + seg(E, [11, 10], 'ext');
     return {
-      fig: fig(10, 7, poly(p, 'shape s-or') + seg([3, 1], [7, 1], 'ext') + dims),
+      fig: fig(15, 11, poly([A, C, D, E], 'shape s-or') + guides + dims, 1, false),
       methods: [
-        { name: '補成長方形再扣掉', fig: fig(10, 7, poly(p, 'shape s-p1') + poly([[3, 1], [7, 1], [5, 4]], 'shape s-hole') + dims + pc(3, 3.6, '整張') + pc(3, 4.4, '8×5＝40') + pc(6.3, 1.9, '4×3÷2')), note: '整張長方形 8 × 5 ＝ 40，再扣掉三角形缺口 4 × 3 ÷ 2 ＝ 6。' },
-        { name: '從中間切開', fig: fig(10, 7, poly([[1, 1], [3, 1], [5, 4], [5, 6], [1, 6]], 'shape s-p1') + poly([[5, 4], [7, 1], [9, 1], [9, 6], [5, 6]], 'shape s-p2') + seg([5, 4], [5, 6], 'cut') + dims.replace(seg([5, 1], [5, 4], 'hgt'), '') + pc(2.8, 4.3, '甲') + pc(7.2, 4.3, '乙')), note: '從缺口尖端往下切，左右兩塊一樣大。每塊可以再切成「梯形」＋「長方形」……這個方法比較麻煩，<b>扣除法</b>比較快！' },
+        { name: '多多：兩個三角形', fig: fig(15, 11, poly([A, C, E], 'shape s-p1') + poly([E, C, D], 'shape s-p2') + guides + dims, 1, false), note: '三角形 ACE：底 AC ＝ 9 ＋ 9 ＝ 18，高 20 → 18 × 20 ÷ 2 ＝ 180<br>三角形 ECD：底 CD ＝ 20 ＋ 6 ＝ 26，高 9 → 26 × 9 ÷ 2 ＝ 117' },
+        { name: '美美：梯形＋三角形', fig: fig(15, 11, poly([B, C, D, E], 'shape s-p1') + poly([A, B, E], 'shape s-p2') + guides + dims, 1, false), note: '梯形 BCDE：(20 ＋ 26) × 9 ÷ 2 ＝ 207<br>三角形 ABE：20 × 9 ÷ 2 ＝ 90' },
       ],
     };
   })();
-  // 梯形土地與平行四邊形道路（單位：公尺）
-  const roadBase = (moved) => {
-    const left = [[1, 7], [6, 7], [7, 1], [3, 1]], right = [[8, 7], [13, 7], [11, 1], [9, 1]], road = [[6, 7], [8, 7], [9, 1], [7, 1]];
-    let g = poly(left, 'shape s-or') + `<g class="slide" id="rt" ${moved ? `style="transform:translateX(${-2 * U}px)"` : ''}>${poly(right, 'shape s-or')}</g>` +
-      `<g class="fade" id="rd" ${moved ? 'style="opacity:0"' : ''}>${poly(road, 'shape', 'fill="#9a8f80" stroke="#5f564b"')}${seg([7, 7], [8, 1], 'cut')}${txt(7.5, 7.6, '路寬 2', 'lbl')}</g>`;
-    g += txt(7, 8.25, moved ? '下底 12 − 2 ＝ 10 公尺' : '下底 12 公尺', 'lbl lb" id="lb1') + txt(7, .45, moved ? '上底 8 − 2 ＝ 6 公尺' : '上底 8 公尺', 'lbl lb" id="lb2') + heightMark([3, 1], [3, 7], [1, 7], [13, 7], '6 公尺');
-    return fig(14, 8, g, 1.1);
-  };
-  const moveRoad = ctx => {
-    ctx.stage.innerHTML = roadBase(false);
-    ctx.panel.innerHTML = `<span class="qtag">動手做</span><div class="prompt">如果把道路拿掉，把右邊的土地<b>往左推</b>，會拼成什麼形狀？</div>`;
-    const b = mk('button', 'big', '➡️ 拿掉道路，往左推！'); ctx.panel.appendChild(b);
-    b.onclick = () => {
-      b.remove(); const s = ctx.stage; s.querySelector('#rd').style.opacity = 0; s.querySelector('#rt').style.transform = `translateX(${-2 * U}px)`; sSnap();
-      setTimeout(() => {
-        s.querySelector('#lb1').textContent = '下底 12 − 2 ＝ 10 公尺'; s.querySelector('#lb2').textContent = '上底 8 − 2 ＝ 6 公尺';
-        ctx.panel.insertAdjacentHTML('beforeend', '<div class="fb good show pop">拼成一個新的<b>梯形</b>！<br>上底變成 8 − 2 ＝ 6 公尺，下底變成 12 − 2 ＝ 10 公尺，高還是 6 公尺。</div>');
-        nextBtn(ctx, '繼續 →');
-      }, 950);
+  // 課本例題 6：紫色部分（單位：公分，圖縮小一半）
+  const ex6 = (() => {
+    const Lp = [1, 6], R = [9, 6], T = [6, 2], Pp = [6, 5];
+    const dims = seg(T, Pp, 'ext') + seg(Pp, [6, 6], 'ext') + txt(3.5, 6.6, '10', 'lbl lb') + txt(7.5, 6.6, '6', 'lbl lb') + txt(6.2, 3.5, '6', 'lbl lh', 'start') + txt(6.2, 5.55, '2', 'lbl lh', 'start');
+    return {
+      fig: fig(10, 7, poly([Lp, T, R, Pp], 'shape s-p3') + dims, 1, false),
+      methods: [
+        { name: '皮皮：切成兩個三角形', fig: fig(10, 7, poly([Lp, T, Pp], 'shape s-p1') + poly([T, R, Pp], 'shape s-p2') + dims, 1, false), note: '把中間 6 公分的線當作底：<br>左邊 6 × 10 ÷ 2 ＝ 30，右邊 6 × 6 ÷ 2 ＝ 18' },
+        { name: '大三角形扣掉白色', fig: fig(10, 7, poly([Lp, T, R], 'shape s-p3') + poly([Lp, Pp, R], 'shape', 'fill="#fffdf7" stroke="#e4572e" stroke-dasharray="6 5" stroke-width="2.5"') + dims, 1, false), note: '大三角形：底 10 ＋ 6 ＝ 16，高 6 ＋ 2 ＝ 8 → 16 × 8 ÷ 2 ＝ 64<br>白色三角形：16 × 2 ÷ 2 ＝ 16' },
+      ],
     };
-  };
+  })();
+  const roadM = (u, l, h, w, unit) => [
+    { name: '多多：扣掉道路', fig: roadFigure(u, l, h, w, unit, false), note: `先算整塊梯形：(${u} ＋ ${l}) × ${h} ÷ 2 ＝ ${(u + l) * h / 2}<br>再扣掉道路：${w} × ${h} ＝ ${w * h}` },
+    { name: '皮皮：道路移走', fig: roadFigure(u, l, h, w, unit, true), note: `移走道路後：上底 ${u} − ${w} ＝ ${u - w}，下底 ${l} − ${w} ＝ ${l - w}<br>(${u - w} ＋ ${l - w}) × ${h} ÷ 2` },
+  ];
+  const sy = (() => {   // 素養評量：梯形 ABDE
+    const A = [1, 1], E = [6, 1], B = [1, 7], C = [11, 7], D = [16, 7];
+    const g = poly([A, B, C], 'shape s-p2') + poly([A, D, E], 'shape s-p1') + poly([A, C, D], 'shape', 'fill="#fffdf7" stroke="#8a7a66" stroke-width="2.5"') +
+      txt(3.5, .5, '10', 'lbl lb') + txt(6, 7.6, '20', 'lbl lb') + txt(13.5, 7.6, '10', 'lbl') +
+      [['A', A, [-.25, -.2], 'end'], ['E', E, [.25, -.2], 'start'], ['B', B, [-.25, .2], 'end'], ['C', C, [0, .6], 'middle'], ['D', D, [.25, .2], 'start']].map(([n, p, d, an]) => txt(p[0] + d[0], p[1] + d[1], n, 'lbl q', an)).join('');
+    return fig(17, 8, g, 1, false);
+  })();
   return [
-    numQ({ tag: '複合圖形 1', q: '這個像房子的圖形，面積是多少平方公分？', fig: hs.fig, methods: hs.methods, a: 24, unit: '平方公分', hint: '切成「長方形」和「三角形」，再加起來。', exp: '6 × 3 ＋ 6 × 2 ÷ 2 ＝ 18 ＋ 6 ＝ 24（平方公分）' }),
-    numQ({ tag: '複合圖形 2', q: '這個 L 形的面積是多少平方公分？（單位：公分）', fig: L.fig, methods: L.methods, a: 26, unit: '平方公分', hint: '切成兩個長方形；或用大長方形 7 × 5 扣掉缺角。', exp: '4 × 3 ＋ 7 × 2 ＝ 26，或 7 × 5 − 3 × 3 ＝ 26（平方公分）' }),
-    numQ({ tag: '複合圖形 3', q: '長方形紙板被剪掉一個三角形缺口，剩下的面積是多少平方公分？', fig: notch.fig, methods: notch.methods, a: 34, unit: '平方公分', hint: '先算整個長方形，再<b>扣掉</b>三角形缺口（底 4、高 3）。', exp: '8 × 5 − 4 × 3 ÷ 2 ＝ 40 − 6 ＝ 34（平方公分）' }),
-    numQ({ tag: '道路問題', q: '梯形土地中間開了一條<b>平行四邊形的道路</b>（寬 2 公尺）。道路的面積是多少平方公尺？', fig: roadBase(false), a: 12, unit: '平方公尺', hint: '道路是平行四邊形：底 2 公尺，高和梯形一樣。', exp: '2 × 6 ＝ 12（平方公尺）' }),
-    moveRoad,
-    numQ({ tag: '道路問題', q: '扣掉道路後，剩下的土地面積是多少平方公尺？', fig: roadBase(true), a: 48, unit: '平方公尺', hint: '新梯形：上底 6、下底 10、高 6。', exp: '(6 ＋ 10) × 6 ÷ 2 ＝ 48（平方公尺）；也可以 (8＋12)×6÷2 − 12 ＝ 48' }),
+    numQ({ tag: '複合圖形', q: '這個像房子的圖形，面積是多少平方公分？', fig: hs.fig, methods: hs.methods, a: 24, unit: '平方公分', hint: '切成「長方形」和「三角形」，再加起來。', exp: '6 × 3 ＋ 6 × 2 ÷ 2 ＝ 18 ＋ 6 ＝ 24（平方公分）' }),
+    numQ({ tag: '複合圖形', q: '這個 L 形的面積是多少平方公分？（單位：公分）', fig: L.fig, methods: L.methods, a: 26, unit: '平方公分', hint: '切成兩個長方形；或用大長方形 7 × 5 扣掉缺角。', exp: '4 × 3 ＋ 7 × 2 ＝ 26，或 7 × 5 − 3 × 3 ＝ 26（平方公分）' }),
+    numQ({ tag: '例題 5', q: '算算看，這個圖形的面積是多少平方公尺？（單位：公尺）', fig: ex5.fig, methods: ex5.methods, a: 297, unit: '平方公尺', hint: '切成認識的圖形：兩個三角形，或一個梯形加一個三角形。', exp: '180 ＋ 117 ＝ 297，或 207 ＋ 90 ＝ 297（平方公尺）' }),
+    numQ({ tag: '例題 6', q: '算算看，紫色部分的面積是多少平方公分？（單位：公分）', fig: ex6.fig, methods: ex6.methods, a: 48, unit: '平方公分', hint: '可以從中間切成兩個三角形，也可以用大三角形扣掉白色三角形。', exp: '30 ＋ 18 ＝ 48，或 64 − 16 ＝ 48（平方公分）' }),
+    numQ({ tag: '例題 7', q: '梯形土地中間開了一條<b>平行四邊形的道路</b>，其餘地方種茶。道路的面積是多少平方公尺？', fig: roadFigure(40, 75, 40, 10, '公尺', false), a: 400, unit: '平方公尺', hint: '道路是平行四邊形：底是路寬 10 公尺，高和梯形一樣。', exp: '10 × 40 ＝ 400（平方公尺）' }),
+    roadMove(40, 75, 40, 10, '公尺'),
+    numQ({ tag: '例題 7', q: '種茶的面積是多少平方公尺？', fig: roadFigure(40, 75, 40, 10, '公尺', false), methods: roadM(40, 75, 40, 10, '公尺'), a: 1900, unit: '平方公尺', hint: '多多：整塊梯形扣掉道路。皮皮：道路移走，上底、下底都要減掉路寬。', exp: '(40＋75)×40÷2 − 400 ＝ 2300 − 400 ＝ 1900；或 (30＋65)×40÷2 ＝ 1900（平方公尺）' }),
+    numQ({ tag: '練習', q: '算算看，鋪色部分（扣掉道路）的面積是多少平方公尺？', fig: roadFigure(23, 35, 21, 4, '公尺', false), methods: roadM(23, 35, 21, 4, '公尺'), a: 525, unit: '平方公尺', hint: '可以用扣除法，也可以把道路移走再算。', exp: '(23＋35)×21÷2 − 4×21 ＝ 609 − 84 ＝ 525；或 (19＋31)×21÷2 ＝ 525（平方公尺）' }),
+    choiceQ({ tag: '素養評量', q: '梯形 ABDE 中，ACDE 是平行四邊形。三角形 ADE（綠色）的面積是 120 平方公分，三角形 ABC（橘色）的面積是三角形 ADE 的幾倍？（單位：公分）', fig: sy,
+      opts: ['一樣大', '2 倍', '3 倍', '4 倍'], a: '2 倍', hint: '兩個三角形都夾在上下兩條平行線之間，高一樣嗎？再比比看底。', exp: '兩個三角形的<b>高相同</b>，底 20 是 10 的 2 倍，所以面積也是 <b>2 倍</b>（240 平方公分）。' }),
+  ];
+}
+
+/* =====================================================
+   練習園地（八）（課本 p.134–135）
+   ===================================================== */
+function stPrac() {
+  const pc = (x, y, t) => txt(x, y, t, 'lbl pc');
+  const flower = (() => {
+    const r = [[1, 1], [11, 1], [11, 7], [1, 7]], m = [[6, 1], [11, 4], [6, 7], [1, 4]];
+    const base = poly(r, 'shape', 'fill="#e9f6e4" stroke="#2a9d6a"') + txt(6, 7.6, '20 公尺', 'lbl lb') + txt(11.25, 4, '12 公尺', 'lbl', 'start');
+    return {
+      fig: fig(12, 8, base + poly(m, 'shape s-soft'), 1, false),
+      methods: [
+        { name: '切成四個小三角形', fig: fig(12, 8, base + poly([m[0], [6, 4], m[3]], 'shape s-p1') + poly([m[0], m[1], [6, 4]], 'shape s-p2') + poly([[6, 4], m[1], m[2]], 'shape s-p1') + poly([m[3], [6, 4], m[2]], 'shape s-p2') + pc(4.3, 3.3, '10×6÷2'), 1, false), note: '藍色的四個角都在每邊的正中間。每個小三角形：底 10、高 6 → 10 × 6 ÷ 2 ＝ 30，共 4 個。' },
+        { name: '切成上下兩個三角形', fig: fig(12, 8, base + poly([m[3], m[0], m[1]], 'shape s-p1') + poly([m[3], m[1], m[2]], 'shape s-p2') + pc(6, 3.2, '20×6÷2'), 1, false), note: '上下各一個三角形：底 20、高 6 → 20 × 6 ÷ 2 ＝ 60，共 2 個。' },
+      ],
+    };
+  })();
+  const triples = fig(13, 3, poly([[1, 2], [3, 2], [2, 1]], 'shape s-or') + poly([[4, 2], [8, 2], [6, 1]], 'shape s-teal') + poly([[9, 2], [12, 2], [10.5, 1]], 'shape s-soft') +
+    txt(2, 2.6, '4 公分', 'lbl lb') + txt(6, 2.6, '8 公分', 'lbl lb') + txt(10.5, 2.6, '12 公分', 'lbl lb'), 1, false);
+  const Q = (q, f, a, exp, hint, unit = '平方公分') => numQ({ tag: '練習園地', q, fig: f, a, unit, exp, hint });
+  return [
+    Q('這個平行四邊形的面積是多少平方公分？', pgFigure(7, 5, 3, { slant: 12, lb: '14 公分', lh: '10 公分', nogrid: true }), 140, '14 × 10 ＝ 140（平方公分）', '斜邊 12 公分不是高喔！' + HINT_PG),
+    Q('這個梯形的面積是多少平方公分？', trapFigure(2, 5.5, 4, 1.5, { lu: '4 公分', ll: '11 公分', lh: '8 公分', nogrid: true }), 60, '(4 ＋ 11) × 8 ÷ 2 ＝ 60（平方公分）', HINT_TRAP),
+    Q('這個平行四邊形的面積是多少平方公分？', pgFigure(8, 6, 2, { slant: 27, lb: '31 公分', lh: '26 公分', nogrid: true }), 806, '31 × 26 ＝ 806（平方公分）', '斜邊 27 公分用不到。' + HINT_PG),
+    Q('這個三角形的面積是多少平方公分？', triFigure(6, 3.5, 8, { lb: '12 公分', lh: '7 公分', ext: '4 公分', nogrid: true }), 42, '12 × 7 ÷ 2 ＝ 42（平方公分）。延長出來的 4 公分不是底！', '底只有 12 公分，虛線延長的部分不能加進去。' + HINT_TRI),
+    Q('這個三角形的面積是多少平方公分？', triFigure(2, 3.5, .5, { lb: '4 公分', lh: '7 公分', nogrid: true }), 14, '4 × 7 ÷ 2 ＝ 14（平方公分）', HINT_TRI),
+    Q('這個平行四邊形的面積是多少平方公分？', pgFigure(2, 4.5, 1, { lb: '4 公分', lh: '9 公分', nogrid: true }), 36, '4 × 9 ＝ 36（平方公分）。平行四邊形不用 ÷ 2！', '小心不要和三角形的公式搞混。' + HINT_PG),
+    numQ({ tag: '練習園地', q: '學校有一塊長 20 公尺、寬 12 公尺的長方形土地，中間藍色部分要種波斯菊（藍色的四個角在每邊的正中間）。種波斯菊的面積是多少平方公尺？', fig: flower.fig, methods: flower.methods, a: 120, unit: '平方公尺', hint: '把藍色部分切成三角形來算。', exp: '10 × 6 ÷ 2 × 4 ＝ 120（平方公尺）' }),
+    numQ({ tag: '練習園地', q: '塗色部分（扣掉道路）的面積是多少平方公尺？', fig: roadFigure(13, 30, 8, 3, '公尺', false), methods: [{ name: '道路移走', fig: roadFigure(13, 30, 8, 3, '公尺', true), note: '上底 13 − 3 ＝ 10，下底 30 − 3 ＝ 27' }], a: 148, unit: '平方公尺', hint: '把道路移走，上底、下底都要減掉路寬。', exp: '(10 ＋ 27) × 8 ÷ 2 ＝ 148（平方公尺）' }),
+    numQ({ tag: '練習園地', q: '三個三角形的<b>高都是 2 公分</b>，底分別是 4、8、12 公分。三個三角形的面積合起來是多少平方公分？', fig: triples, a: 24, unit: '平方公分', hint: '可以一個一個算再加起來；也可以把底加起來 4＋8＋12，當成一個大三角形的底。', exp: '4×2÷2 ＋ 8×2÷2 ＋ 12×2÷2 ＝ 4 ＋ 8 ＋ 12 ＝ 24；或 (4＋8＋12)×2÷2 ＝ 24' }),
   ];
 }
 
@@ -1061,19 +1248,41 @@ function st7() {
 const fmtT = ms => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
 /* ---------- 工作台清單 ---------- */
+/* ---------- 單元教學目標（翰林五上第八單元，教師用課本 p.118） ---------- */
+const GOALS = {
+  1: '透過點數方格與切割重組活動，理解與應用平行四邊形面積公式。',
+  '1-1': '透過點數方格與切割重組活動，計算平行四邊形面積。',
+  '1-2': '認識平行四邊形的底和高，並能畫出任一底邊上的高。',
+  '1-3': '利用平行四邊形面積公式求面積。',
+  '1-4': '透過操作活動與計算驗證，發現等底等高的平行四邊形面積相等。',
+  2: '透過點數方格與複製拼湊活動，理解與應用三角形面積公式。',
+  '2-1': '透過點數方格與複製拼湊活動，計算三角形面積。',
+  '2-2': '認識三角形的底和高，並能畫出任一底邊上的高。',
+  '2-3': '利用三角形面積公式求面積。',
+  '2-4': '透過操作活動與計算驗證，發現等底等高的三角形面積相等。',
+  '2-5': '透過操作活動與計算驗證，理解三角形底或高的變化對面積的影響。',
+  3: '透過點數方格與切割重組活動，理解與應用梯形面積公式。',
+  '3-1': '透過點數方格與切割重組活動，計算梯形面積。',
+  '3-2': '認識梯形的上底、下底和高。',
+  '3-3': '利用梯形面積公式求面積。',
+  4: '計算簡單複合圖形的面積。',
+  '4-1': '利用分割法將複合圖形分割成已知面積公式的圖形再進行計算。',
+  '4-2': '利用扣除或平移重組的方式計算包含道路之複合圖形面積。',
+};
 const STATIONS = [
-  { id: 'pg', name: '剪一刀變長方形', sub: '8-1 平行四邊形的面積', ic: '✂️', make: st1 },
-  { id: 'h', name: '高在哪裡？', sub: '找出高、拉線畫高', ic: '📐', make: st2 },
-  { id: 'tri', name: '三角形複製機', sub: '8-2 三角形的面積', ic: '🔺', make: st3 },
-  { id: 'trap', name: '梯形複製機', sub: '8-3 梯形的面積', ic: '🪜', make: st4 },
-  { id: 'same', name: '等底等高實驗室', sub: '形狀變了，面積變了嗎？', ic: '🔬', make: st5 },
-  { id: 'geo', name: '釘板實驗室', sub: '拉橡皮筋圍出指定面積', ic: '📌', make: stGeo },
-  { id: 'mix', name: '複合圖形工地', sub: '切開、補上、扣掉、平移', ic: '🏗️', make: st6 },
-  { id: 'boss', name: '面積大考驗', sub: '10 題總複習・計時挑戰', ic: '🏆', make: st7, boss: true },
+  { id: 'pg', name: '剪一刀變長方形', sub: '8-1 平行四邊形的面積', ic: '✂️', make: st1, goals: ['1-1', '1-3'], pages: 'p.120–122 例題 1～5' },
+  { id: 'h', name: '高在哪裡？', sub: '找出高、拉線畫高', ic: '📐', make: st2, goals: ['1-2', '2-2'], pages: 'p.121、123、126 例題 3、6' },
+  { id: 'tri', name: '三角形複製機', sub: '8-2 三角形的面積', ic: '🔺', make: st3, goals: ['2-1', '2-3'], pages: 'p.124–125 例題 1～5' },
+  { id: 'trap', name: '梯形複製機', sub: '8-3 梯形的面積', ic: '🪜', make: st4, goals: ['3-1', '3-2', '3-3'], pages: 'p.127–129 例題 1～6' },
+  { id: 'same', name: '等底等高實驗室', sub: '8-4 面積的變化', ic: '🔬', make: st5, goals: ['1-4', '2-4', '2-5'], pages: 'p.130–131 例題 1～4、思考帽' },
+  { id: 'geo', name: '釘板實驗室', sub: '拉橡皮筋圍出指定面積', ic: '📌', make: stGeo, goals: ['1-4', '2-4', '2-5'], pages: '釘板、橡皮筋操作（教學提醒 p.131）' },
+  { id: 'mix', name: '複合圖形工地', sub: '8-4 面積的應用', ic: '🏗️', make: st6, goals: ['4-1', '4-2'], pages: 'p.132–133 例題 5～7、練習、素養評量' },
+  { id: 'prac', name: '練習園地（八）', sub: '公式應用與易錯題', ic: '📝', make: stPrac, goals: ['1-3', '2-3', '3-3', '4-1', '4-2'], pages: 'p.134–135 練習園地' },
+  { id: 'boss', name: '面積大考驗', sub: '10 題總複習・計時挑戰', ic: '🏆', make: st7, boss: true, goals: ['1-3', '2-3', '3-3', '4-1'], pages: '全單元' },
 ];
 
 /* ---------- 進度 ---------- */
-const KEY = 'area-lab-v2';
+const KEY = 'area-lab-v2';  // 用工作台 id 存，加站不影響舊紀錄
 let save = {}; try { save = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
 const persist = () => localStorage.setItem(KEY, JSON.stringify(save));
 
@@ -1087,6 +1296,10 @@ function renderHome() {
     map.appendChild(b);
   });
   $('#starTotal').textContent = tot;
+  const gh = $('#goalsHome');
+  gh.innerHTML = '<h2>📘 本單元教學目標 <small>翰林五上 第八單元「面積」</small></h2>' + [1, 2, 3, 4].map(n =>
+    `<div class="gcard"><div class="gt">${n}. ${GOALS[n]}</div><ul>${Object.keys(GOALS).filter(k => k.startsWith(n + '-')).map(k =>
+      `<li><b>${k}</b> ${GOALS[k]}<span class="gs">${STATIONS.filter(s => !s.boss && s.goals.includes(k)).map(s => s.ic + ' ' + s.name).join('、')}</span></li>`).join('')}</ul></div>`).join('');
 }
 function show(id) {
   ['home', 'station'].forEach(x => $('#' + x).classList.toggle('hidden', x !== id));
@@ -1098,6 +1311,7 @@ function startStation(i) {
   const st = STATIONS[i];
   run = { i, steps: st.make(), k: 0, q: 0, ok: 0, final: !!st.boss };
   $('#subTitle').textContent = st.name;
+  $('#goalBar').innerHTML = `<summary>🎯 本站學習目標　<small>課本 ${st.pages}</small></summary><ul>${st.goals.map(g => `<li><b>${g}</b> ${GOALS[g]}</li>`).join('')}</ul>`;
   show('station'); step();
 }
 function step() {
