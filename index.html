@@ -305,6 +305,39 @@ body{background-color:var(--kraft);
 .tile.done{background:#e3eefb;border-color:var(--blue)}
 .mytitle{background:linear-gradient(#ffe9a8,var(--brass));border-color:var(--navy)}
 .lbin{border-color:var(--navy)}
+
+/* 勇者卡（比照勇者 RPG 打卡畫面，不顯示姓名） */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;margin-top:14px}
+.hgrid.big{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.hcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:#f3f6f8;border:3px solid #b9c6cf;border-radius:16px;padding:8px 6px 6px;font:inherit;color:var(--ink);text-align:center;min-width:0}
+.hcard .hseat{position:absolute;top:4px;left:9px;font-family:var(--num);font-weight:800;font-size:22px;color:var(--navy)}
+.hpet{width:78px;height:78px;object-fit:contain;display:block;margin-top:6px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.18))}
+.hpet.big{width:150px;height:150px;margin:8px auto}
+.hpet.mini{width:28px;height:28px;margin:0 3px 0 0;display:inline-block;vertical-align:middle;filter:none}
+.hpet.ph{display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.5}
+.hpet.ph.mini{font-size:16px;display:inline-flex}
+.hcard .hrib{max-width:100%;background:#ffe39a;color:#6b4300;border-radius:8px;padding:1px 8px;font-weight:900;font-size:14px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;justify-content:center}
+.hcard .hname{color:var(--dim);font-size:12px}
+.hcard .hst{font-weight:900;font-size:14px}
+.hcard .ta{font-family:var(--num);font-size:20px;font-weight:800;word-break:break-all}
+.hcard .thumb{width:100%;margin-top:22px}
+.hcard.in,.hcard.done{background:#e6f7e9;border-color:#3aa864}
+.hcard.done .hst{color:#20865a}
+.hcard.work{background:#fff7dd;border-color:#e6b422}
+.hcard.sent{background:#e6eefb;border-color:var(--blue)}
+.hcard.bad{background:#fde3da;border-color:var(--red)}
+.hcard.wait .hst{color:var(--dim)}
+.hcard .kick{position:absolute;top:-9px;right:-9px;width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);background:#fff;font-size:15px;line-height:1;opacity:.25;padding:0}
+.hcard:hover .kick{opacity:1}
+button.hcard{cursor:pointer;box-shadow:3px 3px 0 var(--navy)}button.hcard:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--navy)}
+button.hcard.taken{opacity:.55}
+.pickgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+#live.pick .work{display:none}
+.pickhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--navy2);color:#f6e7c1;border-radius:16px;padding:12px 18px}
+.pickhead b{font-family:var(--serif);font-size:26px;display:block}.pickhead span{color:#a9c3d6;font-weight:700}
+.pickhead .tool{background:#f6e7c1}
+.hcard.me{box-shadow:0 0 0 4px var(--brass);transform:scale(1.03)}
+.hcard .hpn{font-weight:900;font-size:15px;color:var(--navy);line-height:1.2}
 /* 結果 */
 .result{text-align:center;padding:10px 0}
 .result .bigstar{font-size:64px;letter-spacing:6px}
@@ -1524,6 +1557,12 @@ $('#muteBtn').textContent = muted ? '🔇' : '🔊';
    ===================================================== */
 const SB_URL = 'https://zabwwnugehripvoysgkg.supabase.co', SB_KEY = 'sb_publishable_tE0bFfXDSdd_zvLfxesq-Q__QwRv9BR';
 const SITE = location.origin + location.pathname;
+/* 勇者名冊：座號 → { t: 稱號, p: 寵物圖, r: 稀有度 }（不含姓名） */
+const rT = v => typeof v === 'string' ? v : (v && v.t) || '';
+/* 老師的角色（不是學生，可以顯示角色名） */
+const PERSONA = { 15: '帥峰船長', 16: '小峰助教' };
+const pName = n => PERSONA[n] ? `<div class="hpn">${PERSONA[n]}</div>` : '';
+const petImg = (v, cls = '') => v && v.p ? `<img class="hpet ${cls}" alt="" src="pets/${encodeURIComponent(v.p)}" onerror="this.outerHTML='<div class=&quot;hpet ph ${cls}&quot;>⚓</div>'">` : `<div class="hpet ph ${cls}">⚓</div>`;
 let sb = null, liveTimer = null, liveChan = null, liveMode = null;
 function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
 async function getSB() {
@@ -1715,7 +1754,7 @@ function renderLiveQ(q, stage, panel, onSubmit, onDraft) {
 const S = { code: null, seat: null, qs: null, room: null, shownQ: null, shownPhase: null, mine: {} };
 function device() { let d = localStorage.getItem('area-live-dev'); if (!d) { d = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('area-live-dev', d); } return d; }
 function liveShell(title) {
-  show('live'); $('#subTitle').textContent = title;
+  show('live'); $('#live').classList.remove('pick'); $('#subTitle').textContent = title;
   return { stage: $('#lstage'), panel: $('#lpanel'), top: $('#ltop'), below: $('#lbelow') };
 }
 function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; if (liveChan && sb) sb.removeChannel(liveChan); liveChan = null; liveMode = null; }
@@ -1724,8 +1763,9 @@ function digitPad(onKey) {
   ['7', '8', '9', '4', '5', '6', '1', '2', '3', '⌫', '0', '✓'].forEach(k => { const b = mk('button', k === '✓' ? 'ok' : k === '⌫' ? 'del' : '', k === '✓' ? '確定' : k); b.onclick = () => onKey(k); pad.appendChild(b); });
   return pad;
 }
-function studentJoin(preCode, msg) {
+function studentJoin(preCode, msg, seatMode) {
   stopLive(); liveMode = 'student';
+  if (!seatMode && /^\d{4}$/.test(preCode || '')) return rosterPick(preCode, msg);
   const L = liveShell('課堂即時作答'); L.top.innerHTML = ''; L.below.innerHTML = '';
   L.stage.innerHTML = `<div style="text-align:center;padding:20px"><div style="font-size:90px">🙋</div><div style="font-size:26px;font-weight:900">加入課堂作答</div><p class="note">輸入老師給的 <b>房間碼</b> 和你的 <b>座號</b>。<br>你的勇者稱號會自動出現。</p></div>`;
   let code = (preCode || '').replace(/\D/g, '').slice(0, 4), seat = '', field = code.length === 4 ? 'seat' : 'code';
@@ -1742,13 +1782,35 @@ function studentJoin(preCode, msg) {
     L.panel.appendChild(row);
     L.panel.appendChild(digitPad(k => {
       if (k === '⌫') { if (field === 'code') code = code.slice(0, -1); else seat = seat.slice(0, -1); }
-      else if (k === '✓') { if (field === 'code' && code.length === 4) field = 'seat'; else if (code.length === 4 && seat) return pickNick(code, +seat); }
-      else if (field === 'code') { if (code.length < 4) code += k; if (code.length === 4) field = 'seat'; }
+      else if (k === '✓') { if (!seatMode && code.length === 4) return rosterPick(code); if (field === 'code' && code.length === 4) field = 'seat'; else if (code.length === 4 && seat) return pickNick(code, +seat); }
+      else if (field === 'code') { if (code.length < 4) code += k; if (code.length === 4) { if (!seatMode) return rosterPick(code); field = 'seat'; } }
       else if (seat.length < 2) seat += k;
       msg = ''; draw();
     }));
   };
   draw();
+}
+async function rosterPick(code, msg) {
+  const L = liveShell('課堂即時作答'); $('#live').classList.add('pick');
+  L.top.innerHTML = '<p class="note">查詢中……</p>'; L.below.innerHTML = '';
+  let room, ps;
+  try {
+    const c = await getSB();
+    ({ data: room } = await c.from('rooms').select('code,phase,titles,set_id').eq('code', code).maybeSingle());
+    ({ data: ps } = await c.from('players').select('seat,device').eq('room_code', code));
+  } catch (e) { return studentJoin('', '連線失敗，請再試一次', true); }
+  if (!room) return studentJoin('', `找不到房間 ${code}，請再確認一次`, true);
+  if (room.phase === 'end') return studentJoin('', `房間 ${code} 已經結束了`, true);
+  const roster = room.titles || {}, seats = Object.keys(roster).map(Number).sort((a, b) => a - b);
+  if (!seats.length) return studentJoin(code, msg, true);
+  const taken = new Map((ps || []).map(p => [p.seat, p.device]));
+  L.top.innerHTML = `<div class="pickhead"><div><b>⚓ 點選你的勇者卡</b><span>房間 ${code}・${esc(setName(room.set_id))}</span></div><button class="tool" id="bySeat">⌨️ 用座號加入</button></div>${msg ? `<div class="fb bad show">${msg}</div>` : ''}`;
+  $('#bySeat').onclick = () => studentJoin(code, '', true);
+  L.below.innerHTML = `<div class="hgrid pickgrid">` + seats.map(n => {
+    const v = roster[n], t = taken.get(n), mine = t === device();
+    return `<button class="hcard ${t && !mine ? 'taken' : 'in'}" data-seat="${n}"><span class="hseat">${n}</span>${petImg(v)}${pName(n)}<div class="hrib">${esc(rT(v)) || '（無稱號）'}</div><div class="hst">${t ? (mine ? '✅ 這是你' : '🙋 已加入') : '點我加入'}</div></button>`;
+  }).join('') + '</div>';
+  L.below.querySelectorAll('[data-seat]').forEach(b => b.onclick = () => pickNick(code, +b.dataset.seat));
 }
 async function pickNick(code, seat) {   // 稱號來自勇者 RPG（老師開房間時帶入），學生只確認
   if (seat < 1 || seat > 60) return studentJoin(code, '座號要在 1～60 之間');
@@ -1759,11 +1821,11 @@ async function pickNick(code, seat) {   // 稱號來自勇者 RPG（老師開房
   catch (e) { return studentJoin(code, '連線失敗，請再試一次'); }
   if (!room) return studentJoin('', `找不到房間 ${code}，請再確認一次`);
   if (room.phase === 'end') return studentJoin('', `房間 ${code} 已經結束了`);
-  const title = (room.titles || {})[seat] || '';
-  L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">🛡️</div><div style="font-size:22px;color:var(--dim)">勇者確認</div><div class="whoami"><b>${seat}</b> 號</div>${title ? `<div class="mytitle">「${esc(title)}」</div>` : '<p>（這個座號還沒有稱號）</p>'}</div>`;
-  L.panel.innerHTML = `<span class="qtag">是你嗎？</span><p class="prompt">你是 <b>${seat} 號</b>${title ? `「${esc(title)}」` : ''}嗎？</p>`;
+  const rv = (room.titles || {})[seat], title = rT(rv);
+  L.stage.innerHTML = `<div class="waitbox"><div style="font-size:22px;color:var(--dim)">勇者確認</div>${petImg(rv, 'big')}<div class="whoami"><b>${seat}</b> 號${PERSONA[seat] ? ' ' + PERSONA[seat] : ''}</div>${title ? `<div class="mytitle">「${esc(title)}」</div>` : '<p>（這個座號還沒有稱號）</p>'}</div>`;
+  L.panel.innerHTML = `<span class="qtag">是你嗎？</span><p class="prompt">你是 <b>${seat} 號${PERSONA[seat] ? ' ' + PERSONA[seat] : ''}</b>${title ? `「${esc(title)}」` : ''}嗎？</p>`;
   const yes = mk('button', 'big', '✅ 是我，加入！'); yes.onclick = () => doJoin(code, seat, title);
-  const no = mk('button', 'big alt', '不是，重新輸入座號'); no.onclick = () => studentJoin(code);
+  const no = mk('button', 'big alt', '不是，重新選'); no.onclick = () => studentJoin(code);
   L.panel.append(yes, no);
 }
 async function doJoin(code, seat, nick) {
@@ -1775,7 +1837,7 @@ async function doJoin(code, seat, nick) {
     if (room.phase === 'end') return studentJoin('', `房間 ${code} 已經結束了`);
     const { data: other } = await c.from('players').select('device').eq('room_code', code).eq('seat', seat).maybeSingle();
     if (other && other.device !== device() && !confirm(`${seat} 號已經有人用了。你真的是 ${seat} 號嗎？`)) return studentJoin(code, '請輸入你自己的座號');
-    nick = String((room.titles || {})[seat] || '').slice(0, 24);
+    nick = rT((room.titles || {})[seat]).slice(0, 24);
     const { error } = await c.from('players').upsert({ room_code: code, seat, nick, device: device(), updated_at: new Date().toISOString() }, { onConflict: 'room_code,seat' });
     if (error) throw error;
     localStorage.setItem('area-live-student', JSON.stringify({ code, seat, nick }));
@@ -1799,12 +1861,13 @@ function studentLoop() {
 async function studentRefresh() {
   if (liveMode !== 'student') return;
   const c = sb;
-  const [{ data: room }, { data: me }, { data: ans }, { count: nPlayers }] = await Promise.all([
+  const [{ data: room }, { data: me }, { data: ans }, { data: plAll }] = await Promise.all([
     c.from('rooms').select('*').eq('code', S.code).maybeSingle(),
     c.from('players').select('seat').eq('room_code', S.code).eq('seat', S.seat).maybeSingle(),
     c.from('answers').select('seat,q_index,answer,correct,graded:payload->graded').eq('room_code', S.code),
-    c.from('players').select('seat', { count: 'exact', head: true }).eq('room_code', S.code),
+    c.from('players').select('seat,nick').eq('room_code', S.code).order('seat'),
   ]);
+  const nPlayers = (plAll || []).length;
   if (liveMode !== 'student') return;
   if (!room) return studentJoin('', '房間不見了');
   if (!me) { localStorage.removeItem('area-live-student'); return studentJoin(S.code, '老師把你移出房間了，請重新加入'); }
@@ -1814,11 +1877,21 @@ async function studentRefresh() {
   const cur = room.q_index, q = S.qs[cur], my = mineAll.find(a => a.q_index === cur);
   const nAns = (ans || []).filter(a => a.q_index === cur).length;
   L.top.innerHTML = `<div class="livebar"><span>🟢 房間 <b>${S.code}</b></span><span>${S.seat} 號 ${esc(S.nick || '')}</span>${cur >= 0 && room.phase !== 'end' ? `<span>第 <b>${cur + 1}</b> / ${room.n_q} 題</span><span>已作答 <b>${nAns}</b> / ${nPlayers || 0}</span>` : ''}</div>`;
+  const roster = room.titles || {};
+  L.top.querySelector('.livebar span:nth-child(2)').innerHTML = `${petImg(roster[S.seat], 'mini')}<b>${S.seat}</b> 號 ${PERSONA[S.seat] || ''} ${esc(S.nick || '')}`;
   const key = room.phase + ':' + cur + ':' + (my ? 'y' : 'n');
+  // 答完（或等待開始）時，下方顯示全班勇者卡（只顯示完成與否，不顯示對錯）
+  const waiting = room.phase === 'lobby' || (room.phase === 'question' && my);
+  if (waiting) {
+    const done = new Set((ans || []).filter(a => a.q_index === cur).map(a => a.seat));
+    L.below.innerHTML = `<h3 class="tiles-h">${room.phase === 'lobby' ? '🙋 已加入的勇者' : '⚓ 全班進度'}　<span>${room.phase === 'lobby' ? nPlayers : done.size + ' / ' + nPlayers}</span></h3><div class="hgrid">` +
+      (plAll || []).map(p => { const ok = room.phase === 'lobby' || done.has(p.seat), me2 = p.seat === S.seat;
+        return `<div class="hcard ${ok ? 'done' : 'wait'} ${me2 ? 'me' : ''}"><span class="hseat">${p.seat}</span>${petImg(roster[p.seat])}${pName(p.seat)}<div class="hrib">${esc(p.nick || rT(roster[p.seat]))}</div><div class="hst">${room.phase === 'lobby' ? '🙋 已加入' : ok ? '✅ 完成' : '⏳ 作答中'}</div></div>`; }).join('') + '</div>';
+  }
   if (key === S.shown) return;
-  S.shown = key; L.below.innerHTML = ''; L.stage.onpointerup = null; L.panel.onclick = null;
+  S.shown = key; if (!waiting) L.below.innerHTML = ''; L.stage.onpointerup = null; L.panel.onclick = null;
   if (room.phase === 'lobby') {
-    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">⏳</div><b>${S.seat} 號「${esc(S.nick || '')}」報到成功！</b><p>等老師開始……</p></div>`;
+    L.stage.innerHTML = `<div class="waitbox">${petImg(roster[S.seat], 'big')}<b>${S.seat} 號${PERSONA[S.seat] ? ' ' + PERSONA[S.seat] : ''}「${esc(S.nick || '')}」報到成功！</b><p>等老師開始……</p></div>`;
     L.panel.innerHTML = `<span class="qtag">${esc(setName(room.set_id))}</span><p class="note">老師按下「開始」後，題目會自動出現。<br>同一題要等<b>全班都答完</b>才會換下一題喔！</p>`;
   } else if (room.phase === 'question' && !my && q.type === 'step') {
     renderStepLive(q, cur, L);
@@ -1829,10 +1902,10 @@ async function studentRefresh() {
       sSnap(); S.shown = null; studentRefresh();
     }, payload => { clearTimeout(S.dt); S.dt = setTimeout(() => sb.from('players').update({ draft_q: cur, draft: JSON.parse(JSON.stringify(payload)), updated_at: new Date().toISOString() }).eq('room_code', S.code).eq('seat', S.seat).then(() => {}), 350); });
   } else if (room.phase === 'question' && my && q.type === 'step') {
-    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">✅</div><b>這一步完成了！</b><p>等其他同學……</p></div>`;
+    L.stage.innerHTML = `<div class="waitbox">${petImg(roster[S.seat], 'big')}<b>${S.seat} 號${PERSONA[S.seat] ? ' ' + PERSONA[S.seat] : ''}「${esc(S.nick || '')}」這一步完成了！</b><p>等其他同學……</p></div>`;
     L.panel.innerHTML = `<span class="qtag">等待中</span><p class="prompt">全班都完成，老師就會進下一步。</p><p class="note">現在已完成 <b>${nAns}</b> / ${nPlayers || 0} 人。</p>`;
   } else if (room.phase === 'question' && my) {
-    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">📮</div><b>已經送出！</b><p>你的答案：<span class="myans">${esc(my.answer)}</span></p></div>`;
+    L.stage.innerHTML = `<div class="waitbox">${petImg(roster[S.seat], 'big')}<b>${S.seat} 號${PERSONA[S.seat] ? ' ' + PERSONA[S.seat] : ''}「${esc(S.nick || '')}」已經送出！</b><p>你的答案：<span class="myans">${esc(my.answer)}</span></p></div>`;
     L.panel.innerHTML = `<span class="qtag">等待中</span><p class="prompt">等其他同學作答……</p><p class="note">全班都答完，老師就會公布答案。</p>`;
   } else if (room.phase === 'reveal') {
     const ok = my && my.correct;
@@ -1879,12 +1952,12 @@ function renderStepLive(q, cur, L) {
 /* ---------- 老師端 ---------- */
 const T = { code: null, key: null, room: null, qs: null, players: [], answers: [], showAns: false, showOk: false, names: {} };
 /* 勇者 RPG 的稱號（座號 → 稱號，不含姓名）；老師可以匯入最新的 RPG 備份檔更新 */
-const DEFAULT_TITLES = {"1": "熱血號手", "2": "柯瑞接班人", "3": "不沉之錨", "4": "正義領航員", "5": "和風水手", "6": "無爭前鋒", "7": "向學先鋒", "8": "慢工巧匠", "9": "戰鼓健將", "10": "慷慨副官", "11": "新到領航士", "12": "萬象探險家", "13": "馬鈴薯貓", "15": "Peace Harbor船長", "16": "萬能喵星人", "21": "海圖繪師", "22": "多藝少女", "23": "躍動舞星", "24": "靜水舵手", "25": "舞踏隊長", "26": "破浪隊長", "27": "磐石雙星-姊", "28": "磐石雙星-妹", "29": "笑顏笛手", "30": "自律運動員", "31": "巧手工匠", "32": "觀察先鋒", "33": "律動新星"};
+const DEFAULT_TITLES = {"1": {"t": "熱血號手", "p": "pet_stormorca_3.png", "r": "UR"}, "2": {"t": "柯瑞接班人", "p": "pet_leopard_4.png", "r": "UR"}, "3": {"t": "不沉之錨", "p": "pet_jacklantern_3.png", "r": "UR"}, "4": {"t": "正義領航員", "p": "pet_lavarhino_4.png", "r": "UR"}, "5": {"t": "和風水手", "p": "pet_inkaxolotl_2.png", "r": "UR"}, "6": {"t": "無爭前鋒", "p": "pet_jadebeast_3.png", "r": "UR"}, "7": {"t": "向學先鋒", "p": "pet_stormorca_4.png", "r": "UR"}, "8": {"t": "慢工巧匠", "p": "pet_salamander_1.png", "r": "SR"}, "9": {"t": "戰鼓健將", "p": "pet_boltmeerkat_2.png", "r": "UR"}, "10": {"t": "慷慨副官", "p": "pet_jacklantern_2.png", "r": "UR"}, "11": {"t": "新到領航士", "p": "pet_leopard_4.png", "r": "UR"}, "12": {"t": "萬象探險家", "p": "pet_anchor_4.png", "r": "UR"}, "13": {"t": "馬鈴薯貓", "p": "pet_stormorca_2.png", "r": "UR"}, "15": {"t": "Peace Harbor船長", "p": "pet_bear_4.png", "r": "UR"}, "16": {"t": "萬能喵星人", "p": "pet_leopard_4.png", "r": "UR"}, "21": {"t": "海圖繪師", "p": "pet_catcaptain_3.png", "r": "UR"}, "22": {"t": "多藝少女", "p": "pet_pagechameleon_4.png", "r": "UR"}, "23": {"t": "躍動舞星", "p": "pet_thunderlynx_3.png", "r": "SSR"}, "24": {"t": "靜水舵手", "p": "pet_obsidiangolem_2.png", "r": "UR"}, "25": {"t": "舞踏隊長", "p": "pet_leopard_3.png", "r": "UR"}, "26": {"t": "破浪隊長", "p": "pet_qilin_4.png", "r": "UR"}, "27": {"t": "磐石雙星-姊", "p": "pet_bear_4.png", "r": "UR"}, "28": {"t": "磐石雙星-妹", "p": "pet_qilin_4.png", "r": "UR"}, "29": {"t": "笑顏笛手", "p": "pet_galalion_3.png", "r": "UR"}, "30": {"t": "自律運動員", "p": "pet_tidedragon_4.png", "r": "UR"}, "31": {"t": "巧手工匠", "p": "pet_whaleshark_4.png", "r": "UR"}, "32": {"t": "觀察先鋒", "p": "pet_anchor_4.png", "r": "UR"}, "33": {"t": "律動新星", "p": "pet_penciltops_4.png", "r": "UR"}};
 function loadNames() {
   try { T.names = JSON.parse(localStorage.getItem('area-live-names') || '{}'); } catch (e) { T.names = {}; }
   try { T.titles = JSON.parse(localStorage.getItem('area-live-titles') || 'null') || DEFAULT_TITLES; } catch (e) { T.titles = DEFAULT_TITLES; }
 }
-const seatLabel = s => { const p = T.players.find(x => x.seat === s); return `<b>${s}</b>${p && p.nick ? ' <span class="nk">' + esc(p.nick) + '</span>' : ''}${T.names[s] ? ' <small>' + esc(T.names[s]) + '</small>' : ''}`; };
+const seatLabel = s => { const p = T.players.find(x => x.seat === s); return `<b>${s}</b>${PERSONA[s] ? ' ' + PERSONA[s] : ''}${p && p.nick ? ' <span class="nk">' + esc(p.nick) + '</span>' : ''}${T.names[s] ? ' <small>' + esc(T.names[s]) + '</small>' : ''}`; };
 function teacherHome() {
   stopLive(); liveMode = 'teacher'; loadNames();
   const L = liveShell('老師控制台'); L.top.innerHTML = ''; L.below.innerHTML = '';
@@ -1929,8 +2002,8 @@ function teacherHome() {
   fi.onchange = async () => {
     try {
       const d = JSON.parse(await fi.files[0].text()); const t = {}, nm = {};
-      (d.students || []).forEach(st => { if (st.seat) { if (st.title) t[st.seat] = String(st.title); if (st.name) nm[st.seat] = String(st.name); } });
-      if (!Object.keys(t).length) throw new Error('檔案裡找不到稱號');
+      (d.students || []).forEach(st => { if (st.seat) { const ap = st.activePet, pp = ap && st.pets && st.pets[ap]; t[st.seat] = { t: String(st.title || ''), p: pp ? `pet_${ap}_${(pp.stage || 0) + 1}.png` : '' }; if (st.name) nm[st.seat] = String(st.name); } });
+      if (!Object.keys(t).length) throw new Error('檔案裡找不到學生');
       T.titles = t; localStorage.setItem('area-live-titles', JSON.stringify(t)); localStorage.setItem('area-live-titles-src', fi.files[0].name);
       if (Object.keys(nm).length) { T.names = nm; localStorage.setItem('area-live-names', JSON.stringify(nm)); ta.value = Object.entries(nm).map(([k, v]) => k + ' ' + v).join('\n'); }
       $('#ntitles').textContent = Object.keys(t).length; toast(`已匯入 ${Object.keys(t).length} 位的稱號`);
@@ -2110,20 +2183,24 @@ function openLB(seat) {
 }
 function teacherEndBtn(panel) { const b = mk('button', 'linkbtn', '關閉這個房間'); b.onclick = () => { if (confirm('確定要關閉房間嗎？')) setRoom(T.room.q_index, 'end'); }; panel.appendChild(b); }
 function tilesHTML(q, cur) {
-  const head = `<h3 class="tiles-h">${cur < 0 ? '🙋 已加入的同學' : '📋 全班作答狀況'}　<span>${T.players.length} 人</span></h3>`;
+  const head = `<h3 class="tiles-h">${cur < 0 ? '🙋 已加入的勇者' : '📋 全班狀況'}　<span>${T.players.length} 人</span></h3>`;
   if (!T.players.length) return head + `<div class="tiles-empty">還沒有學生加入，請學生掃 QR code 或輸入房間碼 ${T.room ? T.room.code : ''}</div>`;
-  const big = q && (q.type === 'geo' || q.type === 'pull' || q.type === 'step'), rv = T.room.phase === 'reveal';
-  return head + `<div class="tiles ${big ? 'big' : ''} ${cur < 0 ? 'lobbyt' : ''}">` + T.players.map(p => {
+  const big = q && (q.type === 'geo' || q.type === 'pull' || q.type === 'step'), rv = T.room.phase === 'reveal', roster = T.room.titles || {};
+  return head + `<div class="hgrid ${big ? 'big' : ''}">` + T.players.map(p => {
     const a = cur >= 0 ? T.answers.find(x => x.seat === p.seat && x.q_index === cur) : null;
     const working = !a && big && p.draft_q === cur && p.draft;
     const showOk = a && (T.showOk || rv);
-    let cls = a ? 'done' : working ? 'working' : '';
-    if (showOk) cls += a.correct ? ' ok' : ' bad';
-    let body = '';
-    if (big) { const im = a ? thumbOf(q, a.payload, showOk) : working ? thumbOf(q, p.draft) : ''; body = `<div class="thumb ${im ? 'zoom' : ''}" ${im ? `data-lb="${p.seat}"` : ''}>${im || '<span class="nothumb">還沒開始操作</span>'}</div>`; }
-    const ans = a && (T.showAns || rv) && !big ? `<div class="ta">${esc(a.answer)}</div>` : a && big && (T.showAns || rv) ? `<div class="ta">${esc(a.answer)}</div>` : '';
-    const state = a ? (q && q.type === 'step' && !a.graded ? '✅' : showOk ? (a.correct ? '✅' : '❌') : '📮') : working ? '✏️' : cur >= 0 ? '⏳' : '🙋';
-    return `<div class="tile ${cls}"><div class="th"><span>${seatLabel(p.seat)}</span><span>${state}</span></div>${body}${ans}<button class="kick" data-kick="${p.seat}" title="移出">×</button></div>`;
+    let st, cls;
+    if (cur < 0) { st = '🙋 已加入'; cls = 'in'; }
+    else if (a) {
+      if (q.type === 'step' && !a.graded) { st = '✅ 完成'; cls = 'done'; }
+      else if (showOk) { st = a.correct ? '✅ 答對' : '❌ 答錯'; cls = a.correct ? 'done' : 'bad'; }
+      else { st = '📮 已送出'; cls = 'sent'; }
+    } else if (working) { st = '✏️ 操作中'; cls = 'work'; } else { st = '⏳ 等待中'; cls = 'wait'; }
+    let thumb = '';
+    if (big) { const im = a ? thumbOf(q, a.payload, showOk) : working ? thumbOf(q, p.draft) : ''; thumb = `<div class="thumb ${im ? 'zoom' : ''}" ${im ? `data-lb="${p.seat}"` : ''}>${im || '<span class="nothumb">還沒開始</span>'}</div>`; }
+    const ans = a && (T.showAns || rv) ? `<div class="ta">${esc(a.answer)}</div>` : '';
+    return `<div class="hcard ${cls}"><span class="hseat">${p.seat}</span>${big ? '' : petImg(roster[p.seat])}${thumb}${pName(p.seat)}<div class="hrib">${big ? petImg(roster[p.seat], 'mini') : ''}${esc(p.nick || rT(roster[p.seat]))}</div>${T.names[p.seat] ? `<small class="hname">${esc(T.names[p.seat])}</small>` : ''}${ans}<div class="hst">${st}</div><button class="kick" data-kick="${p.seat}" title="移出">×</button></div>`;
   }).join('') + '</div>';
 }
 function distHTML(q, curAns, mark) {
@@ -2150,7 +2227,7 @@ function downloadCSV() {
   T.players.forEach(p => {
     let ok = 0;
     const cells = Array.from({ length: n }, (_, i) => { const a = T.answers.find(x => x.seat === p.seat && x.q_index === i); if (a && a.correct) ok++; return a ? `${a.correct ? '✓' : '✗'} ${a.answer}` : ''; });
-    rows.push([p.seat, p.nick || '', T.names[p.seat] || '', ...cells, ok]);
+    rows.push([p.seat, p.nick || '', T.names[p.seat] || PERSONA[p.seat] || '', ...cells, ok]);
   });
   const csv = '﻿' + rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
