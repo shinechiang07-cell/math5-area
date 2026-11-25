@@ -188,6 +188,44 @@ input[type=range]::-moz-range-thumb{width:34px;height:34px;border-radius:50%;bac
 .gcard .gt{font-weight:900;font-size:18px}
 .gcard ul{margin:6px 0 0;padding-left:20px;line-height:1.75;font-weight:700;color:#4a3d30}
 .gs{display:inline-block;margin-left:8px;font-size:14px;color:var(--teal-d);background:#e3f5f1;border-radius:999px;padding:0 10px}
+.livecard{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#e3f5f1;border:3px solid var(--ink);border-radius:20px;box-shadow:5px 5px 0 var(--ink);padding:16px 20px;margin-bottom:6px}
+.livecard b{font-size:22px}.livecard p{margin:4px 0 0;color:#2c5b54;font-weight:700}
+.livecard .lbtns{display:flex;gap:12px}.livecard .big{width:auto;padding:0 22px;margin:0}
+.livebar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.livebar span{background:var(--card);border:2.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-weight:800;font-size:18px}
+.livebar b{font-family:var(--num);font-size:22px;color:var(--blue)}.livebar b.code{font-size:28px;letter-spacing:3px;color:var(--or-d)}
+.waitbox{text-align:center;padding:30px 10px;font-size:24px}.waitbox .big-ic{font-size:90px}.waitbox p{color:var(--dim);font-size:20px}
+.myans{font-family:var(--num);font-size:30px;color:var(--blue);font-weight:800}
+.opt.pick{background:#fff3c4;border-color:var(--or-d);box-shadow:0 0 0 4px #ffd98a}
+.lobby{text-align:center;padding:10px}.bigcode{font-family:var(--num);font-size:110px;font-weight:800;letter-spacing:14px;color:var(--or-d);line-height:1.1}
+.qrbox{width:240px;margin:6px auto}.qrbox svg{width:100%;height:auto}
+.setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:14px}
+.setgrid .st{padding-top:14px}
+textarea.names,input.nickin{width:100%;font:inherit;font-size:18px;border:2.5px solid var(--ink);border-radius:12px;padding:10px;background:#fff;-webkit-user-select:text;user-select:text}
+input.nickin{flex:2;min-height:62px}
+.nicks{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:10px}.nicks .opt{font-size:17px;min-height:54px}
+.linkbtn{background:none;border:none;color:var(--dim);text-decoration:underline;font-size:16px;font-weight:700;margin-top:10px;padding:6px}
+.tg{margin-top:12px}.tg .tool{font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:18px}
+.tiles.big{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.tile{position:relative;background:#f1ebe0;border:2.5px solid #bfae92;border-radius:14px;padding:8px 10px;min-height:56px}
+.tile .th{display:flex;justify-content:space-between;align-items:center;font-size:17px;gap:4px}
+.tile .th b{font-family:var(--num);font-size:22px}.tile .nk{font-size:14px;color:var(--teal-d);font-weight:800}.tile small{color:var(--dim)}
+.tile.working{background:#fff8e1;border-color:var(--yellow)}
+.tile.done{background:#e5edfc;border-color:var(--blue)}
+.tile.ok{background:#d8f3e4;border-color:var(--green)}.tile.bad{background:#fde0d6;border-color:var(--red)}
+.tile .ta{font-family:var(--num);font-size:22px;font-weight:800;color:var(--ink);margin-top:2px;word-break:break-all}
+.tile .thumb svg{width:100%;height:auto;display:block}
+.tile .kick{position:absolute;top:-10px;right:-10px;width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);background:#fff;font-size:15px;line-height:1;opacity:.25;padding:0}
+.tile:hover .kick,.tile .kick:focus{opacity:1}
+.tiles-empty{margin-top:18px;color:var(--dim);font-weight:800;text-align:center}
+.dist{margin-top:14px}.dr{display:grid;grid-template-columns:110px 1fr 34px;gap:8px;align-items:center;margin:5px 0;font-weight:800}
+.dr .dk{font-family:var(--num);font-size:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dr .db{background:var(--kraft2);border-radius:8px;height:22px;overflow:hidden}
+.dr .db i{display:block;height:100%;background:var(--blue)}.dr.ok .db i{background:var(--green)}.dr .dn{text-align:right}
+.sumwrap{overflow-x:auto;margin-top:18px}table.sum td,table.sum th{padding:6px 8px;font-size:16px;white-space:nowrap}
+table.sum td.c1{background:#d8f3e4;color:#14603f}table.sum td.c0{background:#fde0d6;color:#9a2c0f}
+.whoami{font-size:30px;font-weight:900;margin-top:6px}.whoami b{font-family:var(--num);font-size:64px;color:var(--blue)}
+.mytitle{display:inline-block;margin-top:8px;font-size:30px;font-weight:900;color:#7a4a00;background:linear-gradient(#ffe9a8,#f6c343);border:3px solid var(--ink);border-radius:14px;padding:6px 18px;box-shadow:4px 4px 0 var(--ink)}
 /* 結果 */
 .result{text-align:center;padding:10px 0}
 .result .bigstar{font-size:64px;letter-spacing:6px}
@@ -220,9 +258,23 @@ input[type=range]::-moz-range-thumb{width:34px;height:34px;border-radius:50%;bac
     </div>
     <div class="hero-art" id="heroArt"></div>
   </section>
+  <section class="livecard">
+    <div><b>🟢 課堂即時作答</b><p>全班同一題，大家都答完才換下一題。老師即時看到每個人的答案和釘板、畫高的操作。</p></div>
+    <div class="lbtns"><button class="big" onclick="location.hash='#live'">🙋 學生加入</button><button class="big alt" onclick="location.hash='#teacher'">👩‍🏫 老師開房間</button></div>
+  </section>
   <div class="map" id="map"></div>
   <section class="goals" id="goalsHome"></section>
   <div class="tips">📱 操作小提醒：圖形可以用手指<b>拖曳</b>；答案用畫面上的<b>數字鍵</b>輸入。每個工作台第一次就答對越多，星星越多（最多 3 顆）。進度存在這台平板上。</div>
+</main>
+
+<!-- ============ 課堂即時作答 ============ -->
+<main id="live" class="hidden">
+  <div id="ltop"></div>
+  <div class="work">
+    <div class="stage" id="lstage"></div>
+    <div class="panel" id="lpanel"></div>
+  </div>
+  <div id="lbelow"></div>
 </main>
 
 <!-- ============ 工作台 ============ -->
@@ -1337,7 +1389,7 @@ function renderHome() {
       `<li><b>${k}</b> ${GOALS[k]}<span class="gs">${STATIONS.filter(s => !s.boss && s.goals.includes(k)).map(s => s.ic + ' ' + s.name).join('、')}</span></li>`).join('')}</ul></div>`).join('');
 }
 function show(id) {
-  ['home', 'station'].forEach(x => $('#' + x).classList.toggle('hidden', x !== id));
+  ['home', 'station', 'live'].forEach(x => $('#' + x).classList.toggle('hidden', x !== id));
   $('#backBtn').classList.toggle('hidden', id === 'home');
   window.scrollTo(0, 0);
 }
@@ -1377,10 +1429,524 @@ function finish() {
   $('#barFill').style.width = '100%';
   beep([523, 659, 784, 1046], .13); confetti(stars * 40);
 }
-function goHome() { if (run && run.timer) clearInterval(run.timer); $('#subTitle').textContent = '五上・第八單元'; renderHome(); show('home'); }
+function goHome() { if (run && run.timer) clearInterval(run.timer); if (typeof stopLive === 'function') stopLive(); if (location.hash) history.replaceState(null, '', location.pathname); $('#subTitle').textContent = '五上・第八單元'; renderHome(); show('home'); }
 $('#backBtn').onclick = goHome;
 $('#muteBtn').onclick = () => { muted = !muted; localStorage.setItem('area-lab-mute', muted ? '1' : '0'); $('#muteBtn').textContent = muted ? '🔇' : '🔊'; };
 $('#muteBtn').textContent = muted ? '🔇' : '🔊';
+
+/* =====================================================
+   課堂即時作答（Supabase）
+   學生：#live（或 #live=房間碼）　老師：#teacher
+   只存座號，不存姓名；姓名名單只留在老師自己的瀏覽器
+   ===================================================== */
+const SB_URL = 'https://zabwwnugehripvoysgkg.supabase.co', SB_KEY = 'sb_publishable_tE0bFfXDSdd_zvLfxesq-Q__QwRv9BR';
+const SITE = location.origin + location.pathname;
+let sb = null, liveTimer = null, liveChan = null, liveMode = null;
+function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+async function getSB() {
+  if (sb) return sb;
+  if (!window.supabase) await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+  sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
+  return sb;
+}
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function buildSet(id, seed) { const o = Math.random; Math.random = mulberry32(seed); try { return LIVE_SETS[id].make(); } finally { Math.random = o; } }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- 題組（老師開房間時選一組，全班同一題） ---------- */
+const LN = g => ({ type: 'num', ...g });
+const LC = g => ({ type: 'choice', ...g });
+const geoQ = (q, init, fixed, check, exp) => ({ type: 'geo', tag: '釘板', q, init, fixed, check, exp });
+const pullQ = o => ({ type: 'pull', tag: '畫高', ...o });
+const chkTri = n => (ps, a) => a === 0 ? '三個點排成一直線，圍不出三角形' : a === n ? true : `面積是 ${a}，不是 ${n}`;
+const chkPG = n => (ps, a) => { const q = quadInfo(ps); if (!q.simple) return '橡皮筋交叉了'; if (!q.pg) return '不是平行四邊形'; if (q.rect) return '這是長方形'; return a === n ? true : `面積是 ${a}，不是 ${n}`; };
+const chkTrap = n => (ps, a) => { const q = quadInfo(ps); if (!q.simple) return '橡皮筋交叉了'; if (q.pairs !== 1) return q.pairs === 2 ? '這是平行四邊形，不是梯形' : '不是梯形'; return a === n ? true : `面積是 ${a}，不是 ${n}`; };
+const SQ = [[1, 2], [3, 2], [3, 4], [1, 4]];
+const LIVE_SETS = {
+  '8-1': { name: '8-1 平行四邊形的面積', make: () => [
+    LN(genPG('in')), LN(genPG('slant')),
+    pullQ({ q: '從頂點<span style="color:var(--violet)">●</span>畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>（拖到 90°）。', cols: 10, rows: 6, shape: [[1, 5], [7, 5], [9, 1], [3, 1]], base: [[1, 5], [7, 5]], apex: [9, 1], range: [-.15, 1.45], startT: .3, exp: '高畫在圖形外面，要用到底邊的延長線。' }),
+    LN(genPG('out')),
+    LC({ tag: '公式', q: '平行四邊形的面積怎麼算？', opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 斜邊', '(底 ＋ 高) × 2']), a: '底 × 高', exp: '切割重組成長方形：長方形的長＝底、寬＝高。' }),
+    geoQ('用釘板圍出一個面積 <span class="o">8 平方公分</span>的<b>平行四邊形</b>（不可以是長方形）。', SQ, [], chkPG(8), '底 × 高 ＝ 8，例如底 4、高 2，或底 2、高 4。'),
+    LN(genFindH('pg')),
+  ] },
+  '8-2': { name: '8-2 三角形的面積', make: () => [
+    LN(genTri('in')),
+    pullQ({ q: '鈍角三角形！從頂點<span style="color:var(--violet)">●</span>畫出<span class="k">藍色底邊</span>上的<span class="r">高</span>。', cols: 10, rows: 6, shape: [[1, 5], [4, 5], [7, 1]], base: [[1, 5], [4, 5]], apex: [7, 1], range: [-.2, 2.6], startT: .5, exp: '鈍角三角形的高可能在外面，要延長底邊。' }),
+    LN(genTri('right')),
+    LC({ tag: '公式', q: '三角形的面積怎麼算？', opts: shuffle(['底 × 高', '底 × 高 ÷ 2', '底 × 高 × 2', '(底 ＋ 高) ÷ 2']), a: '底 × 高 ÷ 2', exp: '兩個全等三角形拼成平行四邊形，三角形是它的一半。' }),
+    LN(genTri('out')),
+    geoQ('用釘板圍出一個面積 <span class="o">6 平方公分</span>的<b>三角形</b>。', [[1, 5], [3, 5], [2, 4]], [], chkTri(6), '底 × 高 ÷ 2 ＝ 6，底 × 高要等於 12。'),
+    LN(genFindH('tri')),
+  ] },
+  '8-3': { name: '8-3 梯形的面積', make: () => [
+    LC({ tag: '想想看', q: '兩個全等的梯形拼成平行四邊形，平行四邊形的<span class="k">底</span>是梯形的什麼？', opts: shuffle(['上底 ＋ 下底', '下底', '上底', '上底 × 下底']), a: '上底 ＋ 下底', exp: '平行四邊形的底是梯形的上底和下底接起來的。' }),
+    LN(genTrap()),
+    LN({ tag: '例題 5', q: '這個梯形的面積是多少平方公分？', fig: trapFigure(4, 7, 3, 1, { lu: '8 公分', ll: '14 公分', lh: '6 公分', nogrid: true }), a: 66, unit: '平方公分', exp: '(8 ＋ 14) × 6 ÷ 2 ＝ 66' }),
+    LN(genTrap()),
+    geoQ('用釘板圍出一個面積 <span class="o">6 平方公分</span>的<b>梯形</b>。', SQ, [], chkTrap(6), '(上底 ＋ 下底) × 高 ÷ 2 ＝ 6。'),
+    LN(genTrap()),
+  ] },
+  '8-4': { name: '8-4 面積的變化與應用', make: () => [
+    geoQ('藍色的底固定是 4 公分。移動紅色頂點，圍出面積 <span class="o">8 平方公分</span>的三角形。<br><small>看看全班的頂點都在哪裡？</small>', [[1, 5], [5, 5], [2, 3]], [0, 1], chkTri(8), '頂點都在同一排（高都是 4）：<b>等底等高，面積一樣</b>。'),
+    LC(genMult()), LC(genMult()),
+    LN(genHouse()), LN(genL()),
+    LN({ tag: '道路', q: '扣掉道路後，剩下的面積是多少平方公尺？', fig: roadFigure(23, 35, 21, 4, '公尺', false), a: 525, unit: '平方公尺', exp: '(19 ＋ 31) × 21 ÷ 2 ＝ 525' }),
+  ] },
+  'review': { name: '總複習（10 題）', make: () => [
+    LN(genPG('in')), LN(genPG('slant')), LN(genTri('in')), LN(genTri('out')), LN(genTrap()), LN(genTrap()),
+    LN(genFindH(pick(['tri', 'pg']))), LC(genMult()), LN(pick([genHouse(), genL()])),
+    geoQ('用釘板圍出一個面積 <span class="o">6 平方公分</span>的<b>梯形</b>。', SQ, [], chkTrap(6), '(上底 ＋ 下底) × 高 ÷ 2 ＝ 6。'),
+  ] },
+};
+
+/* ---------- 共用圖：釘板、畫高 ---------- */
+function boardSVG(ps, o = {}) {
+  const N = 6;
+  let g = `<rect x="${-.5 * U}" y="${-.5 * U}" width="${(N + 1) * U}" height="${(N + 1) * U}" rx="18" class="board"/>`;
+  for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) g += `<circle cx="${P(i)}" cy="${P(j)}" r="6" class="peg"/>`;
+  g += `<polygon id="band" class="band" points="${ps ? pts(ps) : ''}"/>`;
+  if (o.handles) ps.forEach((p, i) => g += (o.fixed || []).includes(i) ? `<g id="v${i}" transform="translate(${P(p[0])},${P(p[1])})"><circle r="11" fill="#2f6fde" stroke="#fff" stroke-width="3"/></g>` : `<g id="v${i}" class="vh drag" transform="translate(${P(p[0])},${P(p[1])})"><circle r="28" class="halo"/><circle r="12" class="ring"/></g>`);
+  return `<svg class="fig" viewBox="${-.9 * U} ${-.9 * U} ${(N + 1.8) * U} ${(N + 1.8) * U}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+function pullInfo(q, t) {
+  const [A, B] = q.base, d = [B[0] - A[0], B[1] - A[1]], L2 = d[0] * d[0] + d[1] * d[1];
+  const tStar = ((q.apex[0] - A[0]) * d[0] + (q.apex[1] - A[1]) * d[1]) / L2;
+  const F = [A[0] + d[0] * t, A[1] + d[1] * t], v = [q.apex[0] - F[0], q.apex[1] - F[1]];
+  const c = Math.abs(v[0] * d[0] + v[1] * d[1]) / (Math.hypot(...v) * Math.sqrt(L2) || 1);
+  return { A, B, d, L2, tStar, F, ang: Math.round(Math.acos(Math.min(1, c)) * 180 / Math.PI), ok: Math.abs(t - tStar) * Math.sqrt(L2) < .3 };
+}
+function pullSVG(q, t, o = {}) {
+  const lo = pullInfo(q, q.range[0]).F, hi = pullInfo(q, q.range[1]).F;
+  let g = poly(q.shape, 'shape s-or') + seg(lo, hi, 'baseline') + seg(q.base[0], q.base[1], 'base') + `<circle cx="${P(q.apex[0])}" cy="${P(q.apex[1])}" r="8" fill="var(--violet)"/>`;
+  if (t != null) { const I = pullInfo(q, t); g += seg(q.apex, I.F, 'pull' + (o.mark && I.ok ? ' ok' : '')) + `<circle cx="${P(I.F[0])}" cy="${P(I.F[1])}" r="10" class="foot"/>`; if (o.mark && I.ok) g += rmark(I.F, q.apex, q.base[0], q.base[1]); }
+  return fig(q.cols, q.rows, g);
+}
+function questionFig(q) {
+  if (q.type === 'geo') return boardSVG(q.init);
+  if (q.type === 'pull') return pullSVG(q, null);
+  return q.fig || '';
+}
+function thumbOf(q, payload, mark) {
+  if (!payload) return '';
+  if (q.type === 'geo') return boardSVG(payload.ps);
+  if (q.type === 'pull') return pullSVG(q, payload.t, { mark });
+  return '';
+}
+
+/* ---------- 學生作答畫面 ---------- */
+function renderLiveQ(q, stage, panel, onSubmit, onDraft) {
+  panel.innerHTML = `<span class="qtag">${q.tag || '作答'}</span><div class="prompt">${q.q}</div>`;
+  const send = mk('button', 'big', '📤 送出答案');
+  const lock = () => { send.disabled = true; panel.querySelectorAll('button').forEach(b => b.disabled = true); };
+  if (q.type === 'num') {
+    stage.innerHTML = q.fig || '';
+    const ans = mk('div', 'ans', `<span class="v"></span><span class="u">${q.unit || ''}</span>`); panel.appendChild(ans);
+    const v = ans.querySelector('.v'); let val = '';
+    const pad = mk('div', 'pad');
+    ['7', '8', '9', '4', '5', '6', '1', '2', '3', '⌫', '0', '✓'].forEach(k => {
+      const b = mk('button', k === '✓' ? 'ok' : k === '⌫' ? 'del' : '', k === '✓' ? '送出' : k);
+      b.onclick = () => {
+        if (k === '⌫') val = val.slice(0, -1);
+        else if (k === '✓') { if (!val) return; lock(); return onSubmit(val, null, +val === q.a); }
+        else if (val.length < 5) val = (val === '0' ? '' : val) + k;
+        v.textContent = val;
+      };
+      pad.appendChild(b);
+    });
+    panel.appendChild(pad);
+  } else if (q.type === 'choice') {
+    stage.innerHTML = q.fig || `<div style="font-size:80px;text-align:center">🤔</div>`;
+    const box = mk('div', 'opts'); panel.appendChild(box); let sel = null;
+    q.opts.forEach(t => { const b = mk('button', 'opt', t); b.onclick = () => { sel = t; box.querySelectorAll('.opt').forEach(x => x.classList.toggle('pick', x === b)); send.disabled = false; }; box.appendChild(b); });
+    send.disabled = true; send.style.marginTop = '14px'; panel.appendChild(send);
+    send.onclick = () => { if (!sel) return; lock(); onSubmit(sel, null, sel === q.a); };
+  } else if (q.type === 'geo') {
+    const ps = q.init.map(p => p.slice());
+    stage.innerHTML = boardSVG(ps, { handles: true, fixed: q.fixed });
+    const svg = stage.querySelector('svg'), band = svg.querySelector('#band');
+    ps.forEach((p, i) => {
+      if (q.fixed.includes(i)) return;
+      const el = svg.querySelector('#v' + i); let s;
+      dragify(svg, el, () => s = ps[i].slice(), dd => {
+        if (send.disabled) return;
+        const nx = clamp(Math.round(s[0] + dd[0]), 0, 6), ny = clamp(Math.round(s[1] + dd[1]), 0, 6);
+        if (nx !== ps[i][0] || ny !== ps[i][1]) { ps[i] = [nx, ny]; band.setAttribute('points', pts(ps)); el.setAttribute('transform', `translate(${P(nx)},${P(ny)})`); beep([300 + ny * 40], .03); }
+      }, () => onDraft({ ps }));
+    });
+    panel.insertAdjacentHTML('beforeend', '<div class="note" style="margin-bottom:10px">拖動紅色圓圈，把橡皮筋套到別的釘子上。圍好了再按「送出」。</div>');
+    panel.appendChild(send);
+    send.onclick = () => { lock(); const a = area2(ps) / 2, r = q.check(ps, a); onSubmit(`${a} 平方公分`, { ps }, r === true); };
+  } else if (q.type === 'pull') {
+    let t = q.startT;
+    stage.innerHTML = pullSVG(q, t);
+    const draw = () => { stage.innerHTML = pullSVG(q, t); hook(); ag.textContent = `角度：${pullInfo(q, t).ang}°`; };
+    const ag = mk('div', 'read', ''); ag.style.fontSize = '24px';
+    function hook() {
+      const svg = stage.querySelector('svg'), ft = svg.querySelector('.foot');
+      ft.classList.add('drag'); ft.setAttribute('r', 16);
+      dragify(svg, ft, () => {}, () => {}, () => { onDraft({ t }); });
+      ft.addEventListener('pointermove', e => {
+        if (send.disabled || !ft.classList.contains('grab')) return;
+        const I = pullInfo(q, 0), p = svgPt(svg, e), qq = [p.x / U - I.A[0], p.y / U - I.A[1]];
+        t = clamp((qq[0] * I.d[0] + qq[1] * I.d[1]) / I.L2, q.range[0], q.range[1]);
+        const F = pullInfo(q, t).F; ft.setAttribute('cx', P(F[0])); ft.setAttribute('cy', P(F[1]));
+        const ln = svg.querySelector('.pull'); ln.setAttribute('x2', P(F[0])); ln.setAttribute('y2', P(F[1]));
+        ag.textContent = `角度：${pullInfo(q, t).ang}°`;
+      });
+    }
+    panel.insertAdjacentHTML('beforeend', '<div class="note" style="margin-bottom:10px">拖動紫色圓點，沿著底邊（和延長線）滑動，覺得畫好了再按「送出」。</div>');
+    panel.appendChild(ag); panel.appendChild(send); draw();
+    send.onclick = () => { lock(); const I = pullInfo(q, t); onSubmit(`${I.ang}°`, { t }, I.ok); };
+  }
+}
+
+/* ---------- 學生端 ---------- */
+const S = { code: null, seat: null, qs: null, room: null, shownQ: null, shownPhase: null, mine: {} };
+function device() { let d = localStorage.getItem('area-live-dev'); if (!d) { d = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('area-live-dev', d); } return d; }
+function liveShell(title) {
+  show('live'); $('#subTitle').textContent = title;
+  return { stage: $('#lstage'), panel: $('#lpanel'), top: $('#ltop'), below: $('#lbelow') };
+}
+function stopLive() { if (liveTimer) clearInterval(liveTimer); liveTimer = null; if (liveChan && sb) sb.removeChannel(liveChan); liveChan = null; liveMode = null; }
+function digitPad(onKey) {
+  const pad = mk('div', 'pad');
+  ['7', '8', '9', '4', '5', '6', '1', '2', '3', '⌫', '0', '✓'].forEach(k => { const b = mk('button', k === '✓' ? 'ok' : k === '⌫' ? 'del' : '', k === '✓' ? '確定' : k); b.onclick = () => onKey(k); pad.appendChild(b); });
+  return pad;
+}
+function studentJoin(preCode, msg) {
+  stopLive(); liveMode = 'student';
+  const L = liveShell('課堂即時作答'); L.top.innerHTML = ''; L.below.innerHTML = '';
+  L.stage.innerHTML = `<div style="text-align:center;padding:20px"><div style="font-size:90px">🙋</div><div style="font-size:26px;font-weight:900">加入課堂作答</div><p class="note">輸入老師給的 <b>房間碼</b> 和你的 <b>座號</b>。<br>你的勇者稱號會自動出現。</p></div>`;
+  let code = (preCode || '').replace(/\D/g, '').slice(0, 4), seat = '', field = code.length === 4 ? 'seat' : 'code';
+  const saved = JSON.parse(localStorage.getItem('area-live-student') || 'null');
+  if (saved && saved.code === code) seat = String(saved.seat);
+  const draw = () => {
+    L.panel.innerHTML = `<span class="qtag">報到</span>${msg ? `<div class="fb bad show" style="margin-top:10px">${msg}</div>` : ''}`;
+    const row = mk('div', 'row'); row.style.margin = '12px 0';
+    [['code', '房間碼', code], ['seat', '座號', seat]].forEach(([f, lab, val]) => {
+      const b = mk('div', 'ans', `<span class="u">${lab}</span><span class="v">${val}</span>`); b.style.cursor = 'pointer';
+      if (field === f) b.style.borderColor = 'var(--or)', b.style.boxShadow = '0 0 0 4px #ffd98a';
+      b.onclick = () => { field = f; draw(); }; row.appendChild(b);
+    });
+    L.panel.appendChild(row);
+    L.panel.appendChild(digitPad(k => {
+      if (k === '⌫') { if (field === 'code') code = code.slice(0, -1); else seat = seat.slice(0, -1); }
+      else if (k === '✓') { if (field === 'code' && code.length === 4) field = 'seat'; else if (code.length === 4 && seat) return pickNick(code, +seat); }
+      else if (field === 'code') { if (code.length < 4) code += k; if (code.length === 4) field = 'seat'; }
+      else if (seat.length < 2) seat += k;
+      msg = ''; draw();
+    }));
+  };
+  draw();
+}
+async function pickNick(code, seat) {   // 稱號來自勇者 RPG（老師開房間時帶入），學生只確認
+  if (seat < 1 || seat > 60) return studentJoin(code, '座號要在 1～60 之間');
+  const L = liveShell('課堂即時作答');
+  L.panel.innerHTML = '<p class="note">查詢中……</p>';
+  let room;
+  try { const c = await getSB(); ({ data: room } = await c.from('rooms').select('code,phase,titles').eq('code', code).maybeSingle()); }
+  catch (e) { return studentJoin(code, '連線失敗，請再試一次'); }
+  if (!room) return studentJoin('', `找不到房間 ${code}，請再確認一次`);
+  if (room.phase === 'end') return studentJoin('', `房間 ${code} 已經結束了`);
+  const title = (room.titles || {})[seat] || '';
+  L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">🛡️</div><div style="font-size:22px;color:var(--dim)">勇者確認</div><div class="whoami"><b>${seat}</b> 號</div>${title ? `<div class="mytitle">「${esc(title)}」</div>` : '<p>（這個座號還沒有稱號）</p>'}</div>`;
+  L.panel.innerHTML = `<span class="qtag">是你嗎？</span><p class="prompt">你是 <b>${seat} 號</b>${title ? `「${esc(title)}」` : ''}嗎？</p>`;
+  const yes = mk('button', 'big', '✅ 是我，加入！'); yes.onclick = () => doJoin(code, seat, title);
+  const no = mk('button', 'big alt', '不是，重新輸入座號'); no.onclick = () => studentJoin(code);
+  L.panel.append(yes, no);
+}
+async function doJoin(code, seat, nick) {
+  if (seat < 1 || seat > 60) return studentJoin(code, '座號要在 1～60 之間');
+  try {
+    const c = await getSB();
+    const { data: room } = await c.from('rooms').select('*').eq('code', code).maybeSingle();
+    if (!room) return studentJoin('', `找不到房間 ${code}，請再確認一次`);
+    if (room.phase === 'end') return studentJoin('', `房間 ${code} 已經結束了`);
+    const { data: other } = await c.from('players').select('device').eq('room_code', code).eq('seat', seat).maybeSingle();
+    if (other && other.device !== device() && !confirm(`${seat} 號已經有人用了。你真的是 ${seat} 號嗎？`)) return studentJoin(code, '請輸入你自己的座號');
+    nick = String((room.titles || {})[seat] || '').slice(0, 24);
+    const { error } = await c.from('players').upsert({ room_code: code, seat, nick, device: device(), updated_at: new Date().toISOString() }, { onConflict: 'room_code,seat' });
+    if (error) throw error;
+    localStorage.setItem('area-live-student', JSON.stringify({ code, seat, nick }));
+    history.replaceState(null, '', '#live=' + code);
+    Object.assign(S, { code, seat, nick, room, qs: buildSet(room.set_id, room.seed), shown: null });
+    studentLoop();
+  } catch (e) { studentJoin(code, '連線失敗，請再試一次（' + (e.message || e) + '）'); }
+}
+let sTick = null;
+function studentLoop() {
+  stopLive(); liveMode = 'student';
+  liveShell(`房間 ${S.code}・${S.seat} 號 ${S.nick || ''}`);
+  const refresh = () => { clearTimeout(sTick); sTick = setTimeout(studentRefresh, 250); };
+  liveChan = sb.channel('s-' + S.code + '-' + S.seat)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `code=eq.${S.code}` }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `room_code=eq.${S.code}` }, refresh)
+    .subscribe();
+  liveTimer = setInterval(studentRefresh, 4000);
+  studentRefresh();
+}
+async function studentRefresh() {
+  if (liveMode !== 'student') return;
+  const c = sb;
+  const [{ data: room }, { data: me }, { data: ans }, { count: nPlayers }] = await Promise.all([
+    c.from('rooms').select('*').eq('code', S.code).maybeSingle(),
+    c.from('players').select('seat').eq('room_code', S.code).eq('seat', S.seat).maybeSingle(),
+    c.from('answers').select('seat,q_index,answer,correct').eq('room_code', S.code),
+    c.from('players').select('seat', { count: 'exact', head: true }).eq('room_code', S.code),
+  ]);
+  if (liveMode !== 'student') return;
+  if (!room) return studentJoin('', '房間不見了');
+  if (!me) { localStorage.removeItem('area-live-student'); return studentJoin(S.code, '老師把你移出房間了，請重新加入'); }
+  S.room = room;
+  const L = { stage: $('#lstage'), panel: $('#lpanel'), top: $('#ltop'), below: $('#lbelow') };
+  const mineAll = (ans || []).filter(a => a.seat === S.seat);
+  const cur = room.q_index, q = S.qs[cur], my = mineAll.find(a => a.q_index === cur);
+  const nAns = (ans || []).filter(a => a.q_index === cur).length;
+  L.top.innerHTML = `<div class="livebar"><span>🟢 房間 <b>${S.code}</b></span><span>${S.seat} 號 ${esc(S.nick || '')}</span>${cur >= 0 && room.phase !== 'end' ? `<span>第 <b>${cur + 1}</b> / ${room.n_q} 題</span><span>已作答 <b>${nAns}</b> / ${nPlayers || 0}</span>` : ''}</div>`;
+  const key = room.phase + ':' + cur + ':' + (my ? 'y' : 'n');
+  if (key === S.shown) return;
+  S.shown = key; L.below.innerHTML = '';
+  if (room.phase === 'lobby') {
+    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">⏳</div><b>${S.seat} 號「${esc(S.nick || '')}」報到成功！</b><p>等老師開始……</p></div>`;
+    L.panel.innerHTML = `<span class="qtag">${esc(LIVE_SETS[room.set_id].name)}</span><p class="note">老師按下「開始」後，題目會自動出現。<br>同一題要等<b>全班都答完</b>才會換下一題喔！</p>`;
+  } else if (room.phase === 'question' && !my) {
+    renderLiveQ(q, L.stage, L.panel, async (answer, payload, correct) => {
+      const { error } = await sb.from('answers').insert({ room_code: S.code, seat: S.seat, q_index: cur, answer, payload, correct });
+      if (error && !/duplicate/.test(error.message)) { toast('送出失敗，再按一次'); S.shown = null; }
+      sSnap(); S.shown = null; studentRefresh();
+    }, payload => { clearTimeout(S.dt); S.dt = setTimeout(() => sb.from('players').update({ draft_q: cur, draft: JSON.parse(JSON.stringify(payload)), updated_at: new Date().toISOString() }).eq('room_code', S.code).eq('seat', S.seat).then(() => {}), 350); });
+  } else if (room.phase === 'question' && my) {
+    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">📮</div><b>已經送出！</b><p>你的答案：<span class="myans">${esc(my.answer)}</span></p></div>`;
+    L.panel.innerHTML = `<span class="qtag">等待中</span><p class="prompt">等其他同學作答……</p><p class="note">全班都答完，老師就會公布答案。</p>`;
+  } else if (room.phase === 'reveal') {
+    const ok = my && my.correct;
+    if (my) ok ? sGood() : sBad();
+    L.stage.innerHTML = q.type === 'num' || q.type === 'choice' ? (q.fig || '') : thumbOf(q, my && my.payload, true) || questionFig(q);
+    L.panel.innerHTML = `<span class="qtag">公布答案</span><div class="fb ${my ? (ok ? 'good' : 'bad') : 'info'} show" style="font-size:22px">${my ? (ok ? '✅ 答對了！' : '❌ 這題沒答對') : '這題你沒有作答'}</div>` +
+      (q.type === 'num' || q.type === 'choice' ? `<p class="prompt">正確答案：<b>${esc(q.a)}</b> ${q.unit || ''}</p>` : '') + `<p class="note">${q.exp || ''}</p>`;
+  } else if (room.phase === 'end') {
+    const n = mineAll.filter(a => a.correct).length;
+    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">🏁</div><b>作答結束！</b></div>`;
+    L.panel.innerHTML = `<div class="result"><div class="bigstar">${'⭐'.repeat(n >= room.n_q * .9 ? 3 : n >= room.n_q * .6 ? 2 : 1)}</div><h2>${S.seat} 號 ${esc(S.nick || '')}</h2><p>答對 <b>${n}</b> / ${room.n_q} 題</p></div>`;
+    localStorage.removeItem('area-live-student');
+  }
+  if (room.phase !== 'question' || my) { /* 草稿不用了 */ }
+}
+
+/* ---------- 老師端 ---------- */
+const T = { code: null, key: null, room: null, qs: null, players: [], answers: [], showAns: false, showOk: false, names: {} };
+/* 勇者 RPG 的稱號（座號 → 稱號，不含姓名）；老師可以匯入最新的 RPG 備份檔更新 */
+const DEFAULT_TITLES = {"1": "熱血號手", "2": "柯瑞接班人", "3": "不沉之錨", "4": "正義領航員", "5": "和風水手", "6": "無爭前鋒", "7": "向學先鋒", "8": "慢工巧匠", "9": "戰鼓健將", "10": "慷慨副官", "11": "新到領航士", "12": "萬象探險家", "13": "馬鈴薯貓", "15": "Peace Harbor船長", "16": "萬能喵星人", "21": "海圖繪師", "22": "多藝少女", "23": "躍動舞星", "24": "靜水舵手", "25": "舞踏隊長", "26": "破浪隊長", "27": "磐石雙星-姊", "28": "磐石雙星-妹", "29": "笑顏笛手", "30": "自律運動員", "31": "巧手工匠", "32": "觀察先鋒", "33": "律動新星"};
+function loadNames() {
+  try { T.names = JSON.parse(localStorage.getItem('area-live-names') || '{}'); } catch (e) { T.names = {}; }
+  try { T.titles = JSON.parse(localStorage.getItem('area-live-titles') || 'null') || DEFAULT_TITLES; } catch (e) { T.titles = DEFAULT_TITLES; }
+}
+const seatLabel = s => { const p = T.players.find(x => x.seat === s); return `<b>${s}</b>${p && p.nick ? ' <span class="nk">' + esc(p.nick) + '</span>' : ''}${T.names[s] ? ' <small>' + esc(T.names[s]) + '</small>' : ''}`; };
+function teacherHome() {
+  stopLive(); liveMode = 'teacher'; loadNames();
+  const L = liveShell('老師控制台'); L.top.innerHTML = ''; L.below.innerHTML = '';
+  const saved = JSON.parse(localStorage.getItem('area-live-teacher') || 'null');
+  L.stage.innerHTML = `<div style="padding:16px"><div style="font-size:26px;font-weight:900;margin-bottom:10px">👩‍🏫 開一個作答房間</div><p class="note">選一組題目，學生用平板輸入房間碼和座號加入。<br>每一題都要<b>全班答完</b>才能公布答案、進下一題。</p><div class="setgrid" id="setgrid"></div></div>`;
+  const grid = $('#setgrid');
+  Object.entries(LIVE_SETS).forEach(([id, s]) => {
+    const n = buildSet(id, 1).length;
+    const b = mk('button', 'st', `<h3>${s.name}</h3><p>${n} 題</p>`);
+    b.onclick = async () => {
+      b.disabled = true;
+      try {
+        const c = await getSB();
+        const { data, error } = await c.rpc('create_room', { p_set: id, p_n: n, p_titles: T.titles });
+        if (error) throw error;
+        localStorage.setItem('area-live-teacher', JSON.stringify({ code: data.code, key: data.key }));
+        teacherOpen(data.code, data.key);
+      } catch (e) { b.disabled = false; toast('建立失敗：' + (e.message || e)); }
+    };
+    grid.appendChild(b);
+  });
+  L.panel.innerHTML = `<span class="qtag">勇者稱號</span><p class="note">學生輸入座號後，會自動顯示他在<b>勇者 RPG</b> 的稱號。目前有 <b id="ntitles">${Object.keys(T.titles).length}</b> 位的稱號${localStorage.getItem('area-live-titles-src') ? '（' + esc(localStorage.getItem('area-live-titles-src')) + '）' : '（11/24 備份）'}。</p>`;
+  const imp = mk('button', 'big alt', '⬆️ 匯入最新的 RPG 備份檔'); const fi = mk('input'); fi.type = 'file'; fi.accept = '.json'; fi.style.display = 'none';
+  imp.onclick = () => fi.click();
+  fi.onchange = async () => {
+    try {
+      const d = JSON.parse(await fi.files[0].text()); const t = {}, nm = {};
+      (d.students || []).forEach(st => { if (st.seat) { if (st.title) t[st.seat] = String(st.title); if (st.name) nm[st.seat] = String(st.name); } });
+      if (!Object.keys(t).length) throw new Error('檔案裡找不到稱號');
+      T.titles = t; localStorage.setItem('area-live-titles', JSON.stringify(t)); localStorage.setItem('area-live-titles-src', fi.files[0].name);
+      if (Object.keys(nm).length) { T.names = nm; localStorage.setItem('area-live-names', JSON.stringify(nm)); ta.value = Object.entries(nm).map(([k, v]) => k + ' ' + v).join('\n'); }
+      $('#ntitles').textContent = Object.keys(t).length; toast(`已匯入 ${Object.keys(t).length} 位的稱號`);
+    } catch (e) { toast('匯入失敗：' + e.message); }
+  };
+  L.panel.append(imp, fi);
+  L.panel.insertAdjacentHTML('beforeend', '<p class="note" style="margin-top:8px">備份檔在桌面「勇者RPG班級系統 › data › auto」，選日期最新的那個。姓名只會留在這台電腦，<b>不會上傳</b>。</p>');
+  L.panel.insertAdjacentHTML('beforeend', `<span class="qtag" style="margin-top:12px">座號名單（選填）</span><p class="note">一行一位，例如「12 王小明」。<b>名單只存在這台電腦</b>，不會上傳。</p>`);
+  const ta = mk('textarea', 'names'); ta.rows = 8; ta.placeholder = '1 王小明\n2 陳小華\n……';
+  ta.value = Object.entries(T.names).map(([k, v]) => k + ' ' + v).join('\n');
+  ta.onchange = () => { const o = {}; ta.value.split(/\n/).forEach(l => { const m = l.trim().match(/^(\d+)[\s,.、:：]+(.+)$/); if (m) o[+m[1]] = m[2].trim(); }); T.names = o; localStorage.setItem('area-live-names', JSON.stringify(o)); toast(`已儲存 ${Object.keys(o).length} 位`); };
+  L.panel.appendChild(ta);
+  if (saved) {
+    getSB().then(c => c.from('rooms').select('code,phase,set_id').eq('code', saved.code).maybeSingle()).then(({ data }) => {
+      if (data && data.phase !== 'end') {
+        const b = mk('button', 'big', `↩️ 回到上次的房間 ${data.code}`); b.style.marginTop = '14px'; b.onclick = () => teacherOpen(saved.code, saved.key);
+        L.panel.prepend(b);
+      }
+    }).catch(() => {});
+  }
+}
+let tTick = null;
+async function teacherOpen(code, key) {
+  stopLive(); liveMode = 'teacher'; loadNames();
+  T.code = code; T.key = key; T.room = null;
+  history.replaceState(null, '', '#teacher');
+  liveShell(`老師控制台・房間 ${code}`);
+  const c = await getSB();
+  const refresh = () => { clearTimeout(tTick); tTick = setTimeout(teacherRefresh, 200); };
+  liveChan = c.channel('t-' + code)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `code=eq.${code}` }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${code}` }, refresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `room_code=eq.${code}` }, refresh)
+    .subscribe();
+  liveTimer = setInterval(teacherRefresh, 4000);
+  T.shown = null; teacherRefresh();
+}
+async function setRoom(q, phase) {
+  const { error } = await sb.rpc('set_room', { p_code: T.code, p_key: T.key, p_q: q, p_phase: phase });
+  if (error) toast('操作失敗：' + error.message); else teacherRefresh();
+}
+async function teacherRefresh() {
+  if (liveMode !== 'teacher') return;
+  const c = sb;
+  const [{ data: room }, { data: players }, { data: answers }] = await Promise.all([
+    c.from('rooms').select('*').eq('code', T.code).maybeSingle(),
+    c.from('players').select('seat,nick,draft_q,draft,updated_at').eq('room_code', T.code).order('seat'),
+    c.from('answers').select('seat,q_index,answer,payload,correct').eq('room_code', T.code),
+  ]);
+  if (liveMode !== 'teacher') return;
+  if (!room) { localStorage.removeItem('area-live-teacher'); return teacherHome(); }
+  if (!T.qs || T.room?.seed !== room.seed) T.qs = buildSet(room.set_id, room.seed);
+  T.room = room; T.players = players || []; T.answers = answers || [];
+  teacherRender();
+}
+function teacherRender() {
+  const L = { stage: $('#lstage'), panel: $('#lpanel'), top: $('#ltop'), below: $('#lbelow') };
+  const room = T.room, cur = room.q_index, q = T.qs[cur], seats = T.players.map(p => p.seat);
+  const curAns = T.answers.filter(a => a.q_index === cur), answered = new Set(curAns.map(a => a.seat));
+  const waiting = seats.filter(s => !answered.has(s));
+  L.top.innerHTML = `<div class="livebar"><span>🟢 房間碼 <b class="code">${room.code}</b></span><span>${esc(LIVE_SETS[room.set_id].name)}</span><span>已加入 <b>${seats.length}</b> 人</span>${cur >= 0 && room.phase !== 'end' ? `<span>第 <b>${cur + 1}</b> / ${room.n_q} 題</span><span>已作答 <b>${answered.size}</b> / ${seats.length}</span>` : ''}</div>`;
+  const viewKey = room.phase + ':' + cur;
+  if (room.phase === 'lobby') {
+    if (T.shown !== viewKey) {
+      T.shown = viewKey;
+      const url = SITE + '#live=' + room.code;
+      L.stage.innerHTML = `<div class="lobby"><div class="note">學生用平板掃 QR code，或打開面積工坊按「學生加入」，輸入房間碼：</div><div class="bigcode">${room.code}</div><div id="qrbox" class="qrbox"></div><div class="note" style="word-break:break-all">${url}</div></div>`;
+      loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js').then(() => { const qr = qrcode(0, 'M'); qr.addData(url); qr.make(); $('#qrbox') && ($('#qrbox').innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true })); }).catch(() => {});
+      L.panel.innerHTML = `<span class="qtag">等待學生加入</span><p class="prompt">學生加入後會出現在下方。<br>到齊就按「開始」！</p>`;
+      const b = mk('button', 'big', '▶️ 開始第 1 題'); b.id = 'startBtn'; b.onclick = () => setRoom(0, 'question'); L.panel.appendChild(b);
+      teacherEndBtn(L.panel);
+    }
+    $('#startBtn') && ($('#startBtn').disabled = !seats.length);
+    L.below.innerHTML = tilesHTML(null, -1);
+  } else if (room.phase === 'question' || room.phase === 'reveal') {
+    const rv = room.phase === 'reveal';
+    if (T.shown !== viewKey) {
+      T.shown = viewKey;
+      L.stage.innerHTML = rv && (q.type === 'geo' || q.type === 'pull') ? questionFig(q) : questionFig(q);
+      L.panel.innerHTML = `<span class="qtag">第 ${cur + 1} 題・${q.tag || ''}</span><div class="prompt">${q.q}</div><div id="tstat"></div><div id="tbtns"></div><div class="row tg" id="ttog"></div><div id="dist"></div>`;
+      const tg = $('#ttog');
+      [['showAns', '👁 顯示學生答案'], ['showOk', '✔ 顯示對錯']].forEach(([k, lab]) => {
+        const b = mk('button', 'tool' + (T[k] ? ' on' : ''), lab); b.onclick = () => { T[k] = !T[k]; b.classList.toggle('on', T[k]); teacherRender(); }; tg.appendChild(b);
+      });
+    }
+    const stat = $('#tstat'), btns = $('#tbtns');
+    const all = seats.length > 0 && waiting.length === 0;
+    stat.innerHTML = rv ? `<div class="fb good show">正確答案：<b>${q.type === 'num' || q.type === 'choice' ? esc(q.a) + ' ' + (q.unit || '') : '見下方綠色的圖'}</b><br>${q.exp || ''}<br>全班答對 <b>${curAns.filter(a => a.correct).length}</b> / ${curAns.length} 人</div>`
+      : all ? `<div class="fb good show">🎉 全班都答完了！</div>` : `<div class="fb info show">還有 <b>${waiting.length}</b> 人沒答：${waiting.map(s => s + ' 號').join('、')}</div>`;
+    const bk = room.phase + all;
+    if (btns.dataset.k !== bk) {
+      btns.dataset.k = bk; btns.innerHTML = '';
+      if (!rv) {
+        const b = mk('button', 'big', '📢 公布答案'); b.disabled = !all; b.onclick = () => setRoom(cur, 'reveal'); btns.appendChild(b);
+        if (!all) { const f = mk('button', 'linkbtn', '有人缺席或卡住？強制公布'); f.onclick = () => { if (confirm(`還有 ${waiting.length} 人沒作答，確定要公布答案嗎？`)) setRoom(cur, 'reveal'); }; btns.appendChild(f); }
+      } else {
+        const last = cur >= room.n_q - 1;
+        const b = mk('button', 'big', last ? '🏁 結束，看全班成績' : `➡️ 下一題（第 ${cur + 2} 題）`); b.onclick = () => last ? setRoom(cur, 'end') : setRoom(cur + 1, 'question'); btns.appendChild(b);
+      }
+    }
+    $('#dist').innerHTML = (q.type === 'num' || q.type === 'choice') && (T.showAns || rv) ? distHTML(q, curAns, rv || T.showOk) : '';
+    L.below.innerHTML = tilesHTML(q, cur);
+  } else if (room.phase === 'end') {
+    if (T.shown !== viewKey) { T.shown = viewKey; }
+    L.stage.innerHTML = `<div class="waitbox"><div class="big-ic">🏁</div><b>作答結束</b><p>${esc(LIVE_SETS[room.set_id].name)}</p></div>`;
+    L.panel.innerHTML = `<span class="qtag">全班成績</span><p class="note">下表 ✓ 是答對、✗ 是答錯、空白是沒作答。</p>`;
+    const dl = mk('button', 'big alt', '⬇️ 下載成績（CSV）'); dl.onclick = downloadCSV; L.panel.appendChild(dl);
+    const nb = mk('button', 'big', '開新房間'); nb.onclick = () => { localStorage.removeItem('area-live-teacher'); teacherHome(); }; L.panel.appendChild(nb);
+    L.below.innerHTML = summaryHTML();
+  }
+  L.below.querySelectorAll('[data-kick]').forEach(b => b.onclick = async e => {
+    e.stopPropagation(); const s = +b.dataset.kick;
+    if (confirm(`把 ${s} 號移出房間？（例如學生坐錯座號）`)) { await sb.rpc('kick_seat', { p_code: T.code, p_key: T.key, p_seat: s }); teacherRefresh(); }
+  });
+}
+function teacherEndBtn(panel) { const b = mk('button', 'linkbtn', '關閉這個房間'); b.onclick = () => { if (confirm('確定要關閉房間嗎？')) setRoom(T.room.q_index, 'end'); }; panel.appendChild(b); }
+function tilesHTML(q, cur) {
+  if (!T.players.length) return `<div class="tiles-empty">還沒有學生加入</div>`;
+  const big = q && (q.type === 'geo' || q.type === 'pull'), rv = T.room.phase === 'reveal';
+  return `<div class="tiles ${big ? 'big' : ''}">` + T.players.map(p => {
+    const a = cur >= 0 ? T.answers.find(x => x.seat === p.seat && x.q_index === cur) : null;
+    const working = !a && big && p.draft_q === cur && p.draft;
+    const showOk = a && (T.showOk || rv);
+    let cls = a ? 'done' : working ? 'working' : '';
+    if (showOk) cls += a.correct ? ' ok' : ' bad';
+    let body = '';
+    if (big) body = `<div class="thumb">${a ? thumbOf(q, a.payload, showOk) : working ? thumbOf(q, p.draft) : ''}</div>`;
+    const ans = a && (T.showAns || rv) && !big ? `<div class="ta">${esc(a.answer)}</div>` : a && big && (T.showAns || rv) ? `<div class="ta">${esc(a.answer)}</div>` : '';
+    const state = a ? (showOk ? (a.correct ? '✅' : '❌') : '📮') : working ? '✏️' : cur >= 0 ? '⏳' : '🙋';
+    return `<div class="tile ${cls}"><div class="th"><span>${seatLabel(p.seat)}</span><span>${state}</span></div>${body}${ans}<button class="kick" data-kick="${p.seat}" title="移出">×</button></div>`;
+  }).join('') + '</div>';
+}
+function distHTML(q, curAns, mark) {
+  const cnt = {}; curAns.forEach(a => cnt[a.answer] = (cnt[a.answer] || 0) + 1);
+  const keys = q.type === 'choice' ? q.opts.slice() : Object.keys(cnt).sort((x, y) => cnt[y] - cnt[x]);
+  const max = Math.max(1, ...Object.values(cnt));
+  return `<div class="dist"><div class="note">答案分布</div>` + keys.map(k => {
+    const n = cnt[k] || 0, ok = mark && String(k) === String(q.a);
+    return `<div class="dr ${ok ? 'ok' : ''}"><span class="dk">${esc(k)}${ok ? ' ✅' : ''}</span><span class="db"><i style="width:${n / max * 100}%"></i></span><span class="dn">${n}</span></div>`;
+  }).join('') + '</div>';
+}
+function summaryHTML() {
+  const n = T.room.n_q;
+  let h = `<div class="sumwrap"><table class="tb sum"><tr><th>座號</th>${Array.from({ length: n }, (_, i) => `<th>${i + 1}</th>`).join('')}<th>答對</th></tr>`;
+  T.players.forEach(p => {
+    let ok = 0;
+    h += `<tr><td>${seatLabel(p.seat)}</td>` + Array.from({ length: n }, (_, i) => { const a = T.answers.find(x => x.seat === p.seat && x.q_index === i); if (a && a.correct) ok++; return `<td class="${a ? (a.correct ? 'c1' : 'c0') : ''}">${a ? (a.correct ? '✓' : '✗') : ''}</td>`; }).join('') + `<td class="n">${ok}</td></tr>`;
+  });
+  h += `<tr><th>答對率</th>` + Array.from({ length: n }, (_, i) => { const xs = T.answers.filter(a => a.q_index === i); return `<th>${xs.length ? Math.round(xs.filter(a => a.correct).length / xs.length * 100) + '%' : '—'}</th>`; }).join('') + '<th></th></tr></table></div>';
+  return h;
+}
+function downloadCSV() {
+  const n = T.room.n_q, rows = [['座號', '稱號', '姓名', ...Array.from({ length: n }, (_, i) => `第${i + 1}題`), '答對題數']];
+  T.players.forEach(p => {
+    let ok = 0;
+    const cells = Array.from({ length: n }, (_, i) => { const a = T.answers.find(x => x.seat === p.seat && x.q_index === i); if (a && a.correct) ok++; return a ? `${a.correct ? '✓' : '✗'} ${a.answer}` : ''; });
+    rows.push([p.seat, p.nick || '', T.names[p.seat] || '', ...cells, ok]);
+  });
+  const csv = '﻿' + rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `面積即時作答_${T.room.code}_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+}
+
+/* ---------- 網址路由 ---------- */
+function route() {
+  const h = location.hash;
+  if (h.startsWith('#teacher')) return teacherHome();
+  if (h.startsWith('#live')) {
+    const code = (h.split('=')[1] || '').replace(/\D/g, '');
+    const saved = JSON.parse(localStorage.getItem('area-live-student') || 'null');
+    if (code && saved && saved.code === code) return doJoin(code, saved.seat);
+    return studentJoin(code);
+  }
+}
 
 /* 首頁插圖：平行四邊形 → 長方形 */
 $('#heroArt').innerHTML = fig(14, 6,
@@ -1388,6 +1954,8 @@ $('#heroArt').innerHTML = fig(14, 6,
   `<text x="${P(7.5)}" y="${P(3.2)}" font-size="40" text-anchor="middle">➜</text>` +
   poly([[9, 5], [13, 5], [13, 1], [9, 1]], 'shape s-or') + poly([[12, 5], [13, 5], [13, 1]], 'shape s-teal'));
 renderHome();
+window.addEventListener('hashchange', () => { if (/^#(live|teacher)/.test(location.hash)) route(); else goHome(); });
+route();
 </script>
 </body>
 </html>
