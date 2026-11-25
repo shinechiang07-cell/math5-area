@@ -226,6 +226,13 @@ input.nickin{flex:2;min-height:62px}
 table.sum td.c1{background:#d8f3e4;color:#14603f}table.sum td.c0{background:#fde0d6;color:#9a2c0f}
 .whoami{font-size:30px;font-weight:900;margin-top:6px}.whoami b{font-family:var(--num);font-size:64px;color:var(--blue)}
 .mytitle{display:inline-block;margin-top:8px;font-size:30px;font-weight:900;color:#7a4a00;background:linear-gradient(#ffe9a8,#f6c343);border:3px solid var(--ink);border-radius:14px;padding:6px 18px;box-shadow:4px 4px 0 var(--ink)}
+#live{max-width:1400px;margin:0 auto;padding:14px 18px 40px}
+.tiles-h{font-size:22px;font-weight:900;margin:22px 0 0;padding-left:12px;border-left:8px solid var(--teal)}
+.tiles-h span{font-family:var(--num);color:var(--blue);font-size:26px}
+.tiles.lobbyt{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.tiles.lobbyt .tile{background:#fff;border-color:var(--teal);min-height:70px;animation:pop .45s both}
+.tiles.lobbyt .th b{font-size:30px}.tiles.lobbyt .nk{font-size:18px}
+.tiles-empty{font-size:20px;padding:18px;border:3px dashed var(--line);border-radius:16px}
 /* 結果 */
 .result{text-align:center;padding:10px 0}
 .result .bigstar{font-size:64px;letter-spacing:6px}
@@ -1890,9 +1897,10 @@ function teacherRender() {
 }
 function teacherEndBtn(panel) { const b = mk('button', 'linkbtn', '關閉這個房間'); b.onclick = () => { if (confirm('確定要關閉房間嗎？')) setRoom(T.room.q_index, 'end'); }; panel.appendChild(b); }
 function tilesHTML(q, cur) {
-  if (!T.players.length) return `<div class="tiles-empty">還沒有學生加入</div>`;
+  const head = `<h3 class="tiles-h">${cur < 0 ? '🙋 已加入的同學' : '📋 全班作答狀況'}　<span>${T.players.length} 人</span></h3>`;
+  if (!T.players.length) return head + `<div class="tiles-empty">還沒有學生加入，請學生掃 QR code 或輸入房間碼 ${T.room ? T.room.code : ''}</div>`;
   const big = q && (q.type === 'geo' || q.type === 'pull'), rv = T.room.phase === 'reveal';
-  return `<div class="tiles ${big ? 'big' : ''}">` + T.players.map(p => {
+  return head + `<div class="tiles ${big ? 'big' : ''} ${cur < 0 ? 'lobbyt' : ''}">` + T.players.map(p => {
     const a = cur >= 0 ? T.answers.find(x => x.seat === p.seat && x.q_index === cur) : null;
     const working = !a && big && p.draft_q === cur && p.draft;
     const showOk = a && (T.showOk || rv);
