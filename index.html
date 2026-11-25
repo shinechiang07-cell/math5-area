@@ -1015,9 +1015,10 @@ function st1(part) {
    工作台 2：高在哪裡？
    ===================================================== */
 function heightRound(r) {
+  const order = shuffle(r.opts.map((o, i) => ({ ...o, ok: i === 0 })));   // 建題時就決定順序，老師與學生的 A、B、C 一致
   return ctx => {
     const letters = ['A', 'B', 'C'];
-    const opts = shuffle(r.opts.map((o, i) => ({ ...o, ok: i === 0 })));
+    const opts = order;
     let tries = 0, over = false;
     const draw = (reveal) => {
       let g = poly(r.shape, 'shape s-or') + seg(r.base[0], r.base[1], 'base');
@@ -1927,8 +1928,8 @@ function studentLoop() {
   liveChan = sb.channel('s-' + S.code + '-' + S.seat)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `code=eq.${S.code}` }, refresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'answers', filter: `room_code=eq.${S.code}` }, refresh)
-    .subscribe();
-  liveTimer = setInterval(studentRefresh, 4000);
+    .subscribe(st => { if (/ERROR|TIMED_OUT/.test(st)) setTimeout(() => liveMode === 'student' && studentLoop(), 2000); });
+  liveTimer = setInterval(studentRefresh, 3000);
   studentRefresh();
 }
 async function studentRefresh() {
@@ -2121,8 +2122,8 @@ async function teacherOpen(code, key) {
       if (!T.answers.some(a => a.seat === n.seat && a.q_index === n.q_index)) T.answers.push(n);
       rerender();
     })
-    .subscribe();
-  liveTimer = setInterval(teacherRefresh, 8000);
+    .subscribe(st => { if (/ERROR|TIMED_OUT/.test(st)) setTimeout(() => liveMode === 'teacher' && T.code === code && teacherOpen(code, key), 2000); });
+  liveTimer = setInterval(teacherRefresh, 3000);
   T.shown = null; teacherRefresh();
 }
 async function setRoom(q, phase) {
@@ -2194,6 +2195,7 @@ function teacherRender() {
     const W = q.type === 'step' ? ['完成', '做'] : ['答', '答'];
     stat.innerHTML = q.type === 'step' ? (all ? `<div class="fb good show">🎉 全班都完成這一步了！</div>` : `<div class="fb info show">還有 <b>${waiting.length}</b> 人沒完成：${waiting.map(s => s + ' 號').join('、')}</div>`) : rv ? `<div class="fb good show">正確答案：<b>${q.type === 'num' || q.type === 'choice' ? esc(q.a) + ' ' + (q.unit || '') : '見下方綠色的圖'}</b><br>${q.exp || ''}<br>全班答對 <b>${curAns.filter(a => a.correct).length}</b> / ${curAns.length} 人</div>`
       : all ? `<div class="fb good show">🎉 全班都答完了！</div>` : `<div class="fb info show">還有 <b>${waiting.length}</b> 人沒答：${waiting.map(s => s + ' 號').join('、')}</div>`;
+    if (!all && !stat.querySelector('.rf')) { const rf = mk('button', 'linkbtn rf', '🔄 學生明明做完了？按這裡更新狀態'); rf.onclick = () => { teacherRefresh(); toast('已更新'); }; stat.appendChild(rf); }
     const bk = room.phase + all;
     if (btns.dataset.k !== bk) {
       btns.dataset.k = bk; btns.innerHTML = '';
@@ -2328,6 +2330,9 @@ function downloadCSV() {
   a.download = `面積即時作答_${T.room.code}_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
 }
 
+/* 切回這個分頁、視窗取得焦點或網路恢復時，立刻同步一次（背景分頁的計時器會被瀏覽器放慢） */
+const liveKick = () => { if (document.hidden) return; if (liveMode === 'teacher' && T.code) teacherRefresh(); else if (liveMode === 'student' && S.code) studentRefresh(); };
+document.addEventListener('visibilitychange', liveKick); window.addEventListener('focus', liveKick); window.addEventListener('online', liveKick);
 /* ---------- 網址路由 ---------- */
 function route() {
   const h = location.hash;
